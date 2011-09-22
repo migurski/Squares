@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Map Tiles in D3</title>
+        <script src="http://mbostock.github.com/d3/d3.min.js"></script>
+        <script type="text/javascript">
+            window.onload = function() {
+            
+                var w = 800,
+                    h = 600;
+            
+                var chart = d3.select("body")
+                    .append("div")
+                        .attr("class", "map")
+                        .style("width", w+"px")
+                        .style("height", h+"px");
+                
+                var coord = [ 1, 1, 2 ], // col, row, zoom
+                    tileSize = [ 256, 256 ],
+                    center = [ w/2, h/2 ];
+
+                function redraw() {
+                
+                    var tl = coord.slice(),
+                        br = coord.slice();
+                
+                    // find coordinate extents of map                    
+                    tl[0] -= center[0] / tileSize[0];
+                    tl[1] -= center[1] / tileSize[1];
+                    br[0] += center[0] / tileSize[0];
+                    br[1] += center[1] / tileSize[1];
+                    
+                    // generate visible tile coords                
+                    var cols = d3.range( Math.floor(tl[0]), Math.ceil(br[0]) ),
+                        rows = d3.range( Math.floor(tl[1]), Math.ceil(br[1]) ),
+                        visibleCoords = [];
+                    rows.forEach(function(row) {
+                        cols.forEach(function(col) {
+                            visibleCoords.push([col,row,coord[2]]);
+                        });
+                    });
+                    
+                    // make a tile provider that knows how to wrap tiles around the world
+                    var minCol = 0, 
+                        maxCol = Math.pow(2,coord[2]);
+                    function mapQuest(d) {
+                        var c = d.slice();
+                        while (c[0] < minCol) c[0] += maxCol;
+                        while (c[0] >= maxCol) c[0] -= maxCol;
+                        var z = c[2], x = c[0], y = c[1];
+                        return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/'+z+'/'+x+'/'+y+'.jpg';
+                    }
+                    
+                    // don't show above/below the poles
+                    var minRow = 0, 
+                        maxRow = Math.pow(2,coord[2]);
+                    visibleCoords = visibleCoords.filter(function(c) {
+                        return c[1] >= minRow && c[1] <= maxRow;                
+                    });
+                    
+                    var map = chart.selectAll('img')
+                        .data(visibleCoords, String);
+
+                    // setup new things                        
+                    map.enter().append('img')
+                        .attr("class","tile")
+                        .attr("src",mapQuest)
+                        .style("opacity", "0.0")
+                        .style("left", function(d) { return (center[0] + (d[0]-coord[0])*tileSize[0])+'px'; })
+                        .style("top", function(d) { return (center[1] + (d[1]-coord[1])*tileSize[1])+'px'; })
+                        .on('load', function() {
+                            d3.select(this)
+                                .transition()
+                                    .duration(500)
+                                    .style("opacity", "1.0");
+                        });
+
+                    // update positions
+                    map.style("left", function(d) { return (center[0] + (d[0]-coord[0])*tileSize[0])+'px'; })
+                        .style("top", function(d) { return (center[1] + (d[1]-coord[1])*tileSize[1])+'px'; })
+                    
+                    // clean up old things
+                    map.exit().remove()
+
+                    return true;
+                }
+                
+                redraw();
+                
+                var prevMouse = null;
+                
+                chart
+                    .on('mousedown', function() {
+                        prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                        d3.event.preventDefault();
+                        d3.event.stopPropagation();
+                    })
+                    .on('mousemove', function() {
+                        if (prevMouse) {
+                            var mouse = prevMouse;
+                            prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                            coord[0] -= (prevMouse[0] - mouse[0]) / tileSize[0];
+                            coord[1] -= (prevMouse[1] - mouse[1]) / tileSize[1];
+                            d3.event.preventDefault();
+                            d3.event.stopPropagation();
+                            d3.timer(redraw);
+                        }
+                    })
+                    .on('mouseup', function() {
+                        prevMouse = null;
+                    });
+                
+            }
+		</script>
+		<style>
+		    .map {
+		        position: relative;
+		        overflow: hidden;
+		        background: #ddd;
+		    }
+		    .tile {
+		        position: absolute;
+		        margin: 0;
+		        padding: 0;
+		        border: 0;
+		    }
+		</style>
+    </head>
+    <body>
+    </body>
+</html>
