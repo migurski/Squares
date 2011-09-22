@@ -1,1 +1,0 @@
-No zooming yet. That's the hard part, clearly.

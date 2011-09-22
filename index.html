@@ -3,8 +3,16 @@
     <head>
         <meta charset="utf-8" />
         <title>Map Tiles in D3</title>
-        <script src="http://mbostock.github.com/d3/d3.min.js"></script>
+        <script src="http://mbostock.github.com/d3/d3.js"></script>
         <script type="text/javascript">
+
+            var coord = [ 2, 2, 2 ], // col, row, zoom
+                tileSize = [ 256, 256 ], // px
+                redraw = null,
+                loadedTiles = {},
+                center = [ window.innerWidth/2, window.innerHeight/2 ];
+                
+
             window.onload = function() {
             
                 var chart = d3.select("body")
@@ -13,16 +21,19 @@
                                     .style("width", "100%")
                                     .style("height", "100%");
                                     
-                var coord = [ 2, 2, 2 ], // col, row, zoom
-                    tileSize = [ 256, 256 ]; // px
+                redraw = function() {
 
-                function redraw() {
-
-                    // get current dimensions and center point
-                    var w = window.innerWidth,
-                        h = window.innerHeight,
-                        center = [ w/2, h/2 ];
-                
+                    // apply coord limits
+                    if (coord[2] > 18) {
+                        var dz = 18-coord[2],
+                            power = Math.pow(2,dz);
+                        coord = [ coord[0] * power, coord[1] * power, Math.round(coord[2]+dz) ];
+                    } else if (coord[2] < 0) {
+                        var dz = -coord[2],
+                            power = Math.pow(2,dz);
+                        coord = [ coord[0] * power, coord[1] * power, Math.round(coord[2]+dz) ];
+                    }
+                    
                     // find coordinate extents of map
                     var tl = coord.slice(),
                         br = coord.slice();
@@ -30,22 +41,32 @@
                     tl[1] -= center[1] / tileSize[1];
                     br[0] += center[0] / tileSize[0];
                     br[1] += center[1] / tileSize[1];
+
+                    // round coords to "best" zoom level
+                    var dz = Math.round(coord[2])-coord[2],
+                        power = Math.pow(2,dz),
+                        roundCoord = coord.slice();
+                    tl = [ tl[0] * power, tl[1] * power, Math.round(tl[2]) ];
+                    br = [ br[0] * power, br[1] * power, Math.round(br[2]) ];
+                    roundCoord = [ roundCoord[0] * power, roundCoord[1] * power, Math.round(roundCoord[2]) ];
                     
                     // generate visible tile coords                
                     var cols = d3.range( Math.floor(tl[0]), Math.ceil(br[0]) ),
                         rows = d3.range( Math.floor(tl[1]), Math.ceil(br[1]) ),
                         visibleCoords = [];
+                    //console.log(rows);
+                    //console.log(cols);
                     rows.forEach(function(row) {
                         cols.forEach(function(col) {
-                            visibleCoords.push([col,row,coord[2]]);
+                            visibleCoords.push([col,row,roundCoord[2]]);
                         });
                     });
                     
                     // make a tile provider that knows how to wrap tiles around the world
-                    var minCol = 0, 
-                        maxCol = Math.pow(2,coord[2]);
-                    function mapQuest(d) {
+                    function provider(d) {
                         var c = d.slice();
+                        var minCol = 0, 
+                            maxCol = Math.pow(2,d[2]);                        
                         while (c[0] < minCol) c[0] += maxCol;
                         while (c[0] >= maxCol) c[0] -= maxCol;
                         var z = c[2], x = c[0], y = c[1];
@@ -53,23 +74,47 @@
                     }
                     
                     // don't show above/below the poles
-                    var minRow = 0, 
-                        maxRow = Math.pow(2,coord[2]);
                     visibleCoords = visibleCoords.filter(function(c) {
+                        var minRow = 0, 
+                            maxRow = Math.pow(2,c[2]);                    
                         return c[1] >= minRow && c[1] <= maxRow;                
                     });
                     
+                    // add parents for tiles we don't have already
+                    var compensationCoords = [];
+                    visibleCoords.forEach(function(c) {
+                        if (c[2] > 0 && !(provider(c) in loadedTiles)) {
+                            compensationCoords.push([
+                                Math.floor(c[0] / 2),
+                                Math.floor(c[1] / 2),
+                                c[2] - 1,
+                            ]);
+                        }
+                    });
+                    visibleCoords = compensationCoords.concat(visibleCoords);
+
+                    // calculate scale as mystery fourth parameter for each coord
+                    visibleCoords.forEach(function(c) {
+                        c.push(Math.pow(2, coord[2]-c[2]));
+                    });
+                    
+                    //console.log(visibleCoords);
+
                     var map = chart.selectAll('img')
-                                       .data(visibleCoords, String);
+                       .data(visibleCoords, function(c) { return String(c.slice(0,3)) });
 
                     // setup new things                        
                     map.enter().append('img')
+                        .attr("id",function(c) { return String(c.slice(0,3)) }) 
                         .attr("class","tile")
-                        .attr("src",mapQuest)
-                        .style("opacity", "0.0")
-                        .style("left", function(d) { return (center[0] + (d[0]-coord[0])*tileSize[0])+'px'; })
-                        .style("top", function(d) { return (center[1] + (d[1]-coord[1])*tileSize[1])+'px'; })
-                        .on('load', function() {
+                        .attr("src",provider)
+                            .style("opacity", "0.0")
+                        .style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
+                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
+                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
+                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
+                        .on('load', function(c) {
+                            loadedTiles[this.src] = true;
                             d3.select(this)
                                 .transition()
                                     .duration(500)
@@ -77,16 +122,26 @@
                         });
 
                     // update positions
-                    map.style("left", function(d) { return (center[0] + (d[0]-coord[0])*tileSize[0])+'px'; })
-                        .style("top", function(d) { return (center[1] + (d[1]-coord[1])*tileSize[1])+'px'; })
+                    map.style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
+                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
+                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
+                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
                     
                     // clean up old things
-                    map.exit().remove()
+                    map.exit().remove();
+/*                        .style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
+                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
+                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
+                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
+                        .transition()
+                            .duration(500)
+                            .style("opacity","0.0")
+                            .remove();*/
 
                     return true;
                 }
                 
-                redraw();
+                d3.timer(redraw);
                 
                 var prevMouse = null;
                 
@@ -100,8 +155,11 @@
                         if (prevMouse) {
                             var mouse = prevMouse;
                             prevMouse = [ d3.event.pageX, d3.event.pageY ];
-                            coord[0] -= (prevMouse[0] - mouse[0]) / tileSize[0];
-                            coord[1] -= (prevMouse[1] - mouse[1]) / tileSize[1];
+                            coord = [
+                                coord[0] - ((prevMouse[0] - mouse[0]) / tileSize[0]),
+                                coord[1] - ((prevMouse[1] - mouse[1]) / tileSize[1]),
+                                coord[2]
+                            ]
                             d3.event.preventDefault();
                             d3.event.stopPropagation();
                             d3.timer(redraw);
@@ -109,9 +167,38 @@
                     })
                     .on('mouseup', function() {
                         prevMouse = null;
+                    })
+                    .on('mousewheel', function() {
+                        var dz = d3.event.wheelDelta > 0 ? 0.05 : d3.event.wheelDelta < 0 ? -0.05 : 0.0,
+                            power = Math.pow(2,dz);
+                        if (dz != 0) {
+                            var mouse = [ d3.event.pageX, d3.event.pageY ];
+                            coord = [ 
+                                coord[0] + ((mouse[0]-center[0]) / tileSize[0]),
+                                coord[1] + ((mouse[1]-center[1]) / tileSize[1]),
+                                coord[2]
+                            ];                            
+                            coord = [ 
+                                coord[0] * power,
+                                coord[1] * power,
+                                coord[2] + dz                        
+                            ];
+                            coord = [ 
+                                coord[0] - ((mouse[0]-center[0]) / tileSize[0]),
+                                coord[1] - ((mouse[1]-center[1]) / tileSize[1]),
+                                coord[2]
+                            ];
+                            d3.timer(redraw);                    
+                        }
                     });
-                
+                    
+                d3.select(window).on('resize', function() {
+                    center = [ window.innerWidth/2, window.innerHeight/2 ] 
+                    d3.timer(redraw);
+                });
+  
             }
+                        
 		</script>
 		<style>
 		    html, body {
