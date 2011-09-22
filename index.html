@@ -6,12 +6,97 @@
         <script src="http://mbostock.github.com/d3/d3.js"></script>
         <script type="text/javascript">
 
-            var coord = [ 2, 2, 2 ], // col, row, zoom
+            var coord = [ 2, 2, 2 ],     // col, row, zoom
+                roundCoord = null,       // coord at an integer zoom level
                 tileSize = [ 256, 256 ], // px
-                redraw = null,
-                loadedTiles = {},
+                redraw = null,           // visible here for console hacking
+                loadedTiles = {},        // [src] --> millis when load completed
                 center = [ window.innerWidth/2, window.innerHeight/2 ];
-                
+
+            // make a tile provider that knows how to wrap tiles around the world
+            function provider(d) {
+                var c = d.slice();
+                var minCol = 0, 
+                    maxCol = Math.pow(2,d[2]);                        
+                while (c[0] < minCol) c[0] += maxCol;
+                while (c[0] >= maxCol) c[0] -= maxCol;
+                var z = c[2], x = c[0], y = c[1];
+                return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/'+z+'/'+x+'/'+y+'.jpg';
+            }      
+            
+            var queue = [],
+                openRequests = [];
+            
+            function addToQueue() {
+                queue.push(this);
+            }
+
+            function removeFromQueue(img) {
+                var index = queue.indexOf(img);
+                if (index >= 0) {
+                    queue.splice(index,1);
+                }
+            }
+            
+            function cancelRequest(img) {
+                var index = openRequests.indexOf(img);
+                if (index >= 0) {
+                    openRequests.splice(index,1);
+                }            
+            }
+            
+            function processQueue() {
+                while (openRequests.length < 8 && queue.length > 0) {
+                    var request = queue.shift();
+                    if (request.parentNode) {
+                        // luckily there's a magic mapping inside d3
+                        // that knows how to pass the correct data to provider()
+                        d3.select(request) 
+                            .attr("src", provider);
+                        openRequests.push(request);
+                    }
+                }
+            }
+
+            // tile positioning functions            
+            // remove round/ceil for greater accuracy but visible seams
+            function left(d) { 
+                var scale = Math.pow(2, coord[2]-d[2]),
+                    power = Math.pow(2, d[2] - roundCoord[2]),
+                    centerCol = roundCoord[0] * power;
+                return Math.round(center[0] + (d[0] - centerCol) * tileSize[0] * scale) + 'px'; 
+            }
+            function top(d) { 
+                var scale = Math.pow(2, coord[2]-d[2]),
+                    power = Math.pow(2, d[2] - roundCoord[2]),
+                    centerRow = roundCoord[1] * power;
+                return Math.round(center[1] + (d[1] - centerRow) * tileSize[1] * scale) + 'px'; 
+            }
+            function width(d) { 
+                var scale = Math.pow(2, coord[2]-d[2]);
+                return Math.ceil(scale * tileSize[0])+'px'; 
+            }
+            function height(d) { 
+                var scale = Math.pow(2, coord[2]-d[2]);
+                return Math.ceil(scale * tileSize[1])+'px'; 
+            }          
+            
+            function transform(d) {
+                var scale = Math.pow(2, coord[2]-d[2]);
+                if (scale * tileSize[0] % 1) {
+                    scale += (1 - scale * tileSize[0] % 1) / tileSize[0];
+                }                
+                var power = Math.pow(2, d[2] - roundCoord[2]),
+                    centerCol = roundCoord[0] * power,                    
+                    centerRow = roundCoord[1] * power,
+                    x = Math.round(center[0] + (d[0] - centerCol) * tileSize[0] * scale),
+                    y = Math.round(center[1] + (d[1] - centerRow) * tileSize[1] * scale);
+                return 'matrix3d(' +
+                    [scale,'0,0,0,0',scale,'0,0,0,0,1,0',
+                    (x + (((tileSize[0] * scale) - tileSize[0]) / 2)).toFixed(4),
+                    (y + (((tileSize[1] * scale) - tileSize[1]) / 2)).toFixed(4),
+                    '0,1'].join(',') + ')';            
+            }
 
             window.onload = function() {
             
@@ -22,6 +107,9 @@
                                     .style("height", "100%");
                                     
                 redraw = function() {
+
+                    //var t = Date.now();
+                    //var t0 = t;
 
                     // apply coord limits
                     if (coord[2] > 18) {
@@ -44,99 +132,112 @@
 
                     // round coords to "best" zoom level
                     var dz = Math.round(coord[2])-coord[2],
-                        power = Math.pow(2,dz),
-                        roundCoord = coord.slice();
+                        power = Math.pow(2,dz);
                     tl = [ tl[0] * power, tl[1] * power, Math.round(tl[2]) ];
                     br = [ br[0] * power, br[1] * power, Math.round(br[2]) ];
-                    roundCoord = [ roundCoord[0] * power, roundCoord[1] * power, Math.round(roundCoord[2]) ];
-                    
+                    roundCoord = [ coord[0] * power, coord[1] * power, Math.round(coord[2]) ];
+
                     // generate visible tile coords                
                     var cols = d3.range( Math.floor(tl[0]), Math.ceil(br[0]) ),
                         rows = d3.range( Math.floor(tl[1]), Math.ceil(br[1]) ),
                         visibleCoords = [];
-                    //console.log(rows);
-                    //console.log(cols);
                     rows.forEach(function(row) {
                         cols.forEach(function(col) {
                             visibleCoords.push([col,row,roundCoord[2]]);
                         });
                     });
                     
-                    // make a tile provider that knows how to wrap tiles around the world
-                    function provider(d) {
-                        var c = d.slice();
-                        var minCol = 0, 
-                            maxCol = Math.pow(2,d[2]);                        
-                        while (c[0] < minCol) c[0] += maxCol;
-                        while (c[0] >= maxCol) c[0] -= maxCol;
-                        var z = c[2], x = c[0], y = c[1];
-                        return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/'+z+'/'+x+'/'+y+'.jpg';
-                    }
-                    
                     // don't show above/below the poles
                     visibleCoords = visibleCoords.filter(function(c) {
                         var minRow = 0, 
                             maxRow = Math.pow(2,c[2]);                    
-                        return c[1] >= minRow && c[1] <= maxRow;                
+                        return c[1] >= minRow && c[1] < maxRow;                
                     });
                     
-                    // add parents for tiles we don't have already
+                    // explicitly preserve parent tiles for tiles we haven't already loaded
+                    // not strictly necessary but helps with continuity on slow connections
                     var compensationCoords = [];
+                        uniqueCompensations = {};
                     visibleCoords.forEach(function(c) {
-                        if (c[2] > 0 && !(provider(c) in loadedTiles)) {
-                            compensationCoords.push([
-                                Math.floor(c[0] / 2),
-                                Math.floor(c[1] / 2),
-                                c[2] - 1,
-                            ]);
+                        if (c[2] > 0) {
+                            var src = provider(c);
+                            if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 500)) {
+                                var parent = [
+                                    Math.floor(c[0] / 2),
+                                    Math.floor(c[1] / 2),
+                                    c[2] - 1,
+                                ];
+                                var parentSrc = provider(parent);
+                                if (parentSrc in loadedTiles && !(parentSrc in uniqueCompensations)) {
+                                    uniqueCompensations[parentSrc] = true;
+                                    compensationCoords.push(parent);
+                                }
+                            }
                         }
                     });
                     visibleCoords = compensationCoords.concat(visibleCoords);
 
-                    // calculate scale as mystery fourth parameter for each coord
-                    visibleCoords.forEach(function(c) {
-                        c.push(Math.pow(2, coord[2]-c[2]));
-                    });
-                    
-                    //console.log(visibleCoords);
-
-                    var map = chart.selectAll('img')
-                       .data(visibleCoords, function(c) { return String(c.slice(0,3)) });
+                    var map = chart.selectAll('img.tile')
+                       .data(visibleCoords, String);
 
                     // setup new things                        
                     map.enter().append('img')
-                        .attr("id",function(c) { return String(c.slice(0,3)) }) 
-                        .attr("class","tile")
-                        .attr("src",provider)
-                            .style("opacity", "0.0")
-                        .style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
-                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
-                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
-                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
+                        .each(addToQueue)
+                        .attr("id", String)
+                        .attr("class", "tile")
+                        .attr("src", "about:blank") // src from provider() is done in a queue
+                        .style("opacity", "0.0")
+                        .style("z-index", function(d) { return d[2] })
+//                        .style('-webkit-transform', transform)
+                        .style("left", left)
+                        .style("top", top)
+                        .style("width", width)
+                        .style("height", height)
                         .on('load', function(c) {
-                            loadedTiles[this.src] = true;
+                            loadedTiles[this.src] = Date.now();
                             d3.select(this)
                                 .transition()
-                                    .duration(500)
-                                    .style("opacity", "1.0");
+                                    .duration(250)
+                                  .style("opacity", "1.0");
+                            cancelRequest(this);
+                            if (openRequests.length < 8) {
+                                processQueue();
+                            }                                  
+                            d3.timer(redraw,30); // TODO: only remove compensation tiles for this tile instead of a full redraw
                         });
 
                     // update positions
-                    map.style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
-                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
-                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
-                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
+//                    map.style('-webkit-transform', transform);
+                    map.style("left", left)
+                       .style("top", top)
+                       .style("width", width)
+                       .style("height", height);
                     
                     // clean up old things
-                    map.exit().remove();
-/*                        .style("left", function(d) { return (center[0] + (d[0] - roundCoord[0]) * tileSize[0] * d[3]) + 'px'; })
-                        .style("top", function(d) { return (center[1] + (d[1] - roundCoord[1]) * tileSize[1] * d[3]) + 'px'; })
-                        .style("width", function(d) { return (d[3] * tileSize[0])+'px'; })
-                        .style("height", function(d) { return (d[3] * tileSize[1])+'px'; })
+                    map.exit() //.remove();
+                        .filter(function(d) {
+                            cancelRequest(this);
+                            removeFromQueue(this);
+                            if (!this.complete) {
+                                // kill it now
+                                this.src = 'about:blank';
+                                d3.select(this).remove();
+                                return false;
+                            }
+                            return true;
+                        })
+//                        .style('-webkit-transform', transform)
+                        .style("left", left)
+                        .style("top", top)
+                        .style("width", width)
+                        .style("height", height)
                         .transition()
-                            .duration(500)
-                            .style("opacity","0.0")
-                            .remove();*/
+                            .style("opacity", "0.0")
+                            .duration(100)
+                            .delay(250)
+                            .remove();// */
+                    
+                    processQueue();
 
                     return true;
                 }
@@ -169,10 +270,10 @@
                         prevMouse = null;
                     })
                     .on('mousewheel', function() {
-                        var dz = d3.event.wheelDelta > 0 ? 0.05 : d3.event.wheelDelta < 0 ? -0.05 : 0.0,
-                            power = Math.pow(2,dz);
-                        if (dz != 0) {
-                            if ((dz > 0 && coord[2] < 18) || (dz < 0 && coord[2] > 0)) {
+                        var delta = d3_behavior_zoomDelta(),
+                            power = Math.pow(2,delta);
+                        if (delta != 0) {
+                            if ((delta > 0 && coord[2] < 18) || (delta < 0 && coord[2] > 0)) {
                                 var mouse = [ d3.event.pageX, d3.event.pageY ];
                                 coord = [ 
                                     coord[0] + ((mouse[0]-center[0]) / tileSize[0]),
@@ -182,7 +283,7 @@
                                 coord = [ 
                                     coord[0] * power,
                                     coord[1] * power,
-                                    coord[2] + dz                        
+                                    coord[2] + delta   
                                 ];
                                 coord = [ 
                                     coord[0] - ((mouse[0]-center[0]) / tileSize[0]),
@@ -202,7 +303,40 @@
                 });
   
             }
-                        
+            
+            // expose this so our own mousewheel handler can use it
+            var d3_behavior_zoomDiv = null;
+            
+            // detect the pixels that would be scrolled by this wheel event
+            function d3_behavior_zoomDelta() {
+            
+              // mousewheel events are totally broken!
+              // https://bugs.webkit.org/show_bug.cgi?id=40441
+              // not only that, but Chrome and Safari differ in re. to acceleration!
+              if (!d3_behavior_zoomDiv) {
+                d3_behavior_zoomDiv = d3.select("body").append("div")
+                    .style("visibility", "hidden")
+                    .style("top", 0)
+                    .style("height", 0)
+                    .style("width", 0)
+                    .style("overflow-y", "scroll")
+                  .append("div")
+                    .style("height", "2000px")
+                  .node().parentNode;
+              }
+            
+              var e = d3.event, delta;
+              try {
+                d3_behavior_zoomDiv.scrollTop = 1000;
+                d3_behavior_zoomDiv.dispatchEvent(e);
+                delta = 1000 - d3_behavior_zoomDiv.scrollTop;
+              } catch (error) {
+                delta = e.wheelDelta || (-e.detail * 5);
+              }
+            
+              return delta * .005;
+            }          
+            
 		</script>
 		<style>
 		    html, body {
