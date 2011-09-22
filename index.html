@@ -244,58 +244,61 @@
                 
                 d3.timer(redraw);
                 
-                var prevMouse = null;
-                
                 chart
-                    .on('mousedown', function() {
-                        prevMouse = [ d3.event.pageX, d3.event.pageY ];
-                        d3.event.preventDefault();
-                        d3.event.stopPropagation();
-                    })
-                    .on('mousemove', function() {
-                        if (prevMouse) {
-                            var mouse = prevMouse;
-                            prevMouse = [ d3.event.pageX, d3.event.pageY ];
-                            coord = [
-                                coord[0] - ((prevMouse[0] - mouse[0]) / tileSize[0]),
-                                coord[1] - ((prevMouse[1] - mouse[1]) / tileSize[1]),
-                                coord[2]
-                            ]
-                            d3.event.preventDefault();
-                            d3.event.stopPropagation();
-                            d3.timer(redraw);
-                        }
-                    })
-                    .on('mouseup', function() {
-                        prevMouse = null;
-                    })
-                    .on('mousewheel', function() {
-                        var delta = d3_behavior_zoomDelta(),
-                            power = Math.pow(2,delta);
-                        if (delta != 0) {
-                            if ((delta > 0 && coord[2] < 18) || (delta < 0 && coord[2] > 0)) {
-                                var mouse = [ d3.event.pageX, d3.event.pageY ];
-                                coord = [ 
-                                    coord[0] + ((mouse[0]-center[0]) / tileSize[0]),
-                                    coord[1] + ((mouse[1]-center[1]) / tileSize[1]),
+                    .on('mousedown.map', function() {
+                        var prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                        d3.select(window)
+                            .on('mousemove.map', function() {
+                                var mouse = prevMouse;
+                                prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                                coord = [
+                                    coord[0] - ((prevMouse[0] - mouse[0]) / tileSize[0]),
+                                    coord[1] - ((prevMouse[1] - mouse[1]) / tileSize[1]),
                                     coord[2]
-                                ];                            
-                                coord = [ 
-                                    coord[0] * power,
-                                    coord[1] * power,
-                                    coord[2] + delta   
-                                ];
-                                coord = [ 
-                                    coord[0] - ((mouse[0]-center[0]) / tileSize[0]),
-                                    coord[1] - ((mouse[1]-center[1]) / tileSize[1]),
-                                    coord[2]
-                                ];
-                                d3.timer(redraw);  
-                            }
-                        }
+                                ]
+                                d3.event.preventDefault();
+                                d3.event.stopPropagation();
+                                d3.timer(redraw);
+                            })
+                            .on('mouseup.map', function() {
+                                prevMouse = null;
+                                d3.select(window)
+                                    .on('mousemove.map',null)
+                                    .on('mouseup.map',null);
+                            })
                         d3.event.preventDefault();
                         d3.event.stopPropagation();                        
-                    });
+                    })
+                    .on('mousewheel.map', onWheel)
+                    .on('DOMMouseScroll.map', onWheel);
+                
+                function onWheel() {
+                    var delta = d3_behavior_zoomDelta(),
+                        power = Math.pow(2,delta);
+                    if (delta != 0) {
+                        if ((delta > 0 && coord[2] < 18) || (delta < 0 && coord[2] > 0)) {
+                            var mouse = [ d3.event.pageX, d3.event.pageY ];
+                            coord = [ 
+                                coord[0] + ((mouse[0]-center[0]) / tileSize[0]),
+                                coord[1] + ((mouse[1]-center[1]) / tileSize[1]),
+                                coord[2]
+                            ];                            
+                            coord = [ 
+                                coord[0] * power,
+                                coord[1] * power,
+                                coord[2] + delta   
+                            ];
+                            coord = [ 
+                                coord[0] - ((mouse[0]-center[0]) / tileSize[0]),
+                                coord[1] - ((mouse[1]-center[1]) / tileSize[1]),
+                                coord[2]
+                            ];
+                            d3.timer(redraw);  
+                        }
+                    }
+                    d3.event.preventDefault();
+                    d3.event.stopPropagation();                        
+                }
                     
                 d3.select(window).on('resize', function() {
                     center = [ window.innerWidth/2, window.innerHeight/2 ] 
