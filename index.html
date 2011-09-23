@@ -235,7 +235,7 @@
                     
                     // clean up old things
                     map.exit() 
-                        .each(removeFromQueue); 
+                        .each(removeFromQueue)
                         .filter(function(d) {
                             if (!this.complete) {
                                 // kill it now
