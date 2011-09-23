@@ -4,6 +4,8 @@
         <meta charset="utf-8" />
         <title>Map Tiles in D3</title>
         <!-- An exercise in learning D3 for DOM manipulation and transitions.
+             There's a CSS 3D transform mode in here as well, 
+             but this version just uses normal CSS.
              Coordinate and tile positioning logic cribbed from Modest Maps. 
              A one day hack... Doubtless still glitches to be ironed out! 
              Queueing img requests seems overkill but smooths things out a lot.
@@ -210,11 +212,11 @@
                         .attr("src", "about:blank") // src from provider() is done in a queue
                         .style("opacity", "0.0")
                         .style("z-index", function(d) { return d[2] })
-                        .style('-webkit-transform', transform)
-//                        .style("left", left)
-//                        .style("top", top)
-//                        .style("width", width)
-//                        .style("height", height)
+//                        .style('-webkit-transform', transform)
+                        .style("left", left)
+                        .style("top", top)
+                        .style("width", width)
+                        .style("height", height)
                         .on('load', function(c) {
                             loadedTiles[this.src] = Date.now();
                             d3.select(this)
@@ -227,11 +229,11 @@
                         });
 
                     // update positions
-                    map.style('-webkit-transform', transform);
-//                    map.style("left", left)
-//                       .style("top", top)
-//                       .style("width", width)
-//                       .style("height", height);
+//                    map.style('-webkit-transform', transform);
+                    map.style("left", left)
+                       .style("top", top)
+                       .style("width", width)
+                       .style("height", height);
                     
                     // clean up old things
                     map.exit() 
@@ -245,11 +247,11 @@
                             }
                             return true;
                         })
-                        .style('-webkit-transform', transform)
-//                        .style("left", left)
-//                        .style("top", top)
-//                        .style("width", width)
-//                        .style("height", height)
+//                        .style('-webkit-transform', transform)
+                        .style("left", left)
+                        .style("top", top)
+                        .style("width", width)
+                        .style("height", height)
                         .transition()
                             .style("opacity", "0.0")
                             .duration(250)
