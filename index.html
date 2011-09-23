@@ -41,8 +41,11 @@
                 queue.push(this);
             }
 
-            function removeFromQueue(img) {
-                var index = queue.indexOf(img);
+            // called with .each, this == <img>
+            function removeFromQueue(d,i) {
+                // also clear open request
+                removeOpenRequest(this);            
+                var index = queue.indexOf(this);
                 if (index >= 0) {
                     queue.splice(index,1);
                 }
@@ -201,7 +204,7 @@
 
                     // setup new things                        
                     map.enter().append('img')
-                        .each(addToQueue)
+                        .each(addToQueue) // sets img src 8 at a time
                         .attr("id", String)
                         .attr("class", "tile")
                         .attr("src", "about:blank") // src from provider() is done in a queue
@@ -231,10 +234,9 @@
 //                       .style("height", height);
                     
                     // clean up old things
-                    map.exit() //.remove();
+                    map.exit() 
+                        .each(removeFromQueue); 
                         .filter(function(d) {
-                            removeOpenRequest(this);
-                            removeFromQueue(this);
                             if (!this.complete) {
                                 // kill it now
                                 this.src = 'about:blank';
