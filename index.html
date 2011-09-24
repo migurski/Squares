@@ -4,8 +4,6 @@
         <meta charset="utf-8" />
         <title>Map Tiles in D3</title>
         <!-- An exercise in learning D3 for DOM manipulation and transitions.
-             There's a CSS 3D transform mode in here as well, 
-             but this version just uses normal CSS.
              Coordinate and tile positioning logic cribbed from Modest Maps. 
              A one day hack... Doubtless still glitches to be ironed out! 
              Queueing img requests seems overkill but smooths things out a lot.
@@ -15,12 +13,49 @@
         <script src="http://mbostock.github.com/d3/d3.js"></script>
         <script type="text/javascript">
 
-            var coord = [ 2, 2, 2 ],     // col, row, zoom
-                roundCoord = null,       // coord at an integer zoom level
-                tileSize = [ 256, 256 ], // px
-                redraw = null,           // visible here for console hacking
-                loadedTiles = {},        // [src] --> millis when load completed
-                center = [ window.innerWidth/2, window.innerHeight/2 ];
+            var coord = [ 2, 2, 2 ],        // col, row, zoom
+                roundCoord = null,          // coord at an integer zoom level
+                tileSize = [ 256, 256 ],    // px
+                redraw = null,              // visible here for console hacking
+                loadedTiles = {},           // [src] --> millis when load completed
+                w = window.innerWidth,
+                h = window.innerHeight,
+                center = [ w/2, h/2 ];      // center of map in pixels
+                
+            // borrowed from Modest Maps, inspired by LeafletJS
+            var transformProperty = (function(props) {
+                var style = document.documentElement.style;
+                for (var i = 0; i < props.length; i++) {
+                    if (props[i] in style) {
+                        return props[i];
+                    }
+                }
+                return false;
+            })(['transform', '-webkit-transform', '-o-transform', '-moz-transform', '-ms-transform']);
+
+            var matrixString = (function() {
+                if (('WebKitCSSMatrix' in window) && ('m11' in new WebKitCSSMatrix())) {
+                    return function(scale,x,y,cx,cy) {
+                        scale = scale || 1;
+                        return 'matrix3d(' +
+                            [ scale, '0,0,0,0',
+                              scale, '0,0,0,0,1,0',
+                              (x + ((cx * scale) - cx)).toFixed(4),
+                              (y + ((cy * scale) - cy)).toFixed(4),
+                              '0,1'].join(',') + ')';
+                    }
+                } else {
+                    return function(scale,x,y,cx,cy) {
+                        var unit = (transformProperty == 'MozTransform') ? 'px' : '';
+                        return 'matrix(' +
+                            [(scale || '1'), 0, 0,
+                            (scale || '1'),
+                            (x + ((cx * scale) - cx)) + unit,
+                            (y + ((cy * scale) - cy)) + unit
+                            ].join(',') + ')';
+                    }
+                }
+            })();
 
             // make a tile provider that knows how to wrap tiles around the world
             function provider(d) {
@@ -36,67 +71,82 @@
             // ----- Queue stuff (should really be wrapped in an object)
             
             var queue = [],
-                openRequests = [];
+                queueById = {},
+                numOpenRequests = 0,
+                requestById = {};
             
             // called with .each, this == <img>
             function addToQueue(d,i) {
-                queue.push(this);
+                console.log('queuing',this.id);
+                var item = { id: this.id, img: this };
+                queue.push(item);
+                queueById[item.id] = item;
             }
 
             // called with .each, this == <img>
             function removeFromQueue(d,i) {
+                // attempt to cancel loading
+                this.src = null;
+                d3.select(this).remove();                
                 // also clear open request
                 removeOpenRequest(this);            
-                var index = queue.indexOf(this);
-                if (index >= 0) {
-                    queue.splice(index,1);
+                var item = queueById[this.id];
+                if (item) {
+                    item.img = null;
+                    delete queueById[this.id];
                 }
             }
-            
+
             function removeOpenRequest(img) {
-                var index = openRequests.indexOf(img);
-                if (index >= 0) {
-                    openRequests.splice(index,1);
+                var request = requestById[img.id];
+                if (request && request.img) {
+                    request.img = null;
+                    delete requestById[img.id];
+                    numOpenRequests--;
                 }            
             }
             
             function processQueue() {
-                while (openRequests.length < 8 && queue.length > 0) {
+                console.log(queue.length);
+                while (numOpenRequests < 8 && queue.length > 0) {
                     var request = queue.shift();
-                    if (request.parentNode) {
+                    if (request.img && request.img.parentNode) {
                         // luckily there's a magic mapping inside d3
                         // that knows how to pass the correct data to provider()
-                        d3.select(request) 
+                        d3.select(request.img) 
                             .attr("src", provider);
-                        openRequests.push(request);
+                        requestById[request.id] = request; 
+                        numOpenRequests++;
                     }
+                    delete queueById[request.id];                        
                 }
             }
             
             // ----- end Queue stuff
 
             // ----- Tile Positioning Functions
-            
+
+            // called with selection.each so we only calculate positioning vars once
+            function stylePrepare(d) {
+                var power = Math.pow(2, d[2] - roundCoord[2]);
+                return d.concat([
+                    Math.pow(2, coord[2]-d[2]), // scale
+                    roundCoord[0] * power,      // centerCol
+                    roundCoord[1] * power       // centerRow
+                ]);
+            }
             // remove round/ceil for greater accuracy but visible seams
             function left(d) { 
-                var scale = Math.pow(2, coord[2]-d[2]),
-                    power = Math.pow(2, d[2] - roundCoord[2]),
-                    centerCol = roundCoord[0] * power;
-                return Math.round(center[0] + (d[0] - centerCol) * tileSize[0] * scale) + 'px'; 
+                return Math.round(center[0] + (d[0] - d[4]) * tileSize[0] * d[3]) + 'px'; 
             }
             function top(d) { 
-                var scale = Math.pow(2, coord[2]-d[2]),
-                    power = Math.pow(2, d[2] - roundCoord[2]),
-                    centerRow = roundCoord[1] * power;
-                return Math.round(center[1] + (d[1] - centerRow) * tileSize[1] * scale) + 'px'; 
+                return Math.round(center[1] + (d[1] - d[5]) * tileSize[1] * d[3]) + 'px'; 
             }
             function width(d) { 
-                var scale = Math.pow(2, coord[2]-d[2]);
-                return Math.ceil(scale * tileSize[0])+'px'; 
+                return Math.ceil(d[3] * tileSize[0])+'px'; 
             }
             function height(d) { 
-                var scale = Math.pow(2, coord[2]-d[2]);
-                return Math.ceil(scale * tileSize[1])+'px'; 
+                return Math.ceil(d[3] * tileSize[1])+'px'; 
             }          
             
             // for 3D webkit mode
@@ -106,16 +156,10 @@
                 if (scale * tileSize[0] % 1) {
                     scale += (1 - scale * tileSize[0] % 1) / tileSize[0];
                 }                
-                var power = Math.pow(2, d[2] - roundCoord[2]),
-                    centerCol = roundCoord[0] * power,                    
-                    centerRow = roundCoord[1] * power,
-                    x = Math.round(center[0] + (d[0] - centerCol) * tileSize[0] * scale),
-                    y = Math.round(center[1] + (d[1] - centerRow) * tileSize[1] * scale);
-                return 'matrix3d(' +
-                    [scale,'0,0,0,0',scale,'0,0,0,0,1,0',
-                    (x + (((tileSize[0] * scale) - tileSize[0]) / 2)).toFixed(4),
-                    (y + (((tileSize[1] * scale) - tileSize[1]) / 2)).toFixed(4),
-                    '0,1'].join(',') + ')';            
+                var zoomedCoord = zoomedBy(roundCoord, d[2] - roundCoord[2]),
+                    x = Math.round(center[0] + (d[0] - zoomedCoord[0]) * tileSize[0] * scale),
+                    y = Math.round(center[1] + (d[1] - zoomedCoord[1]) * tileSize[1] * scale);
+                return matrixString(scale, x, y, tileSize[0]/2.0, tileSize[1]/2.0);
             }
             
             // ----- end Tile Positioning Functions
@@ -133,21 +177,22 @@
             function offsetBy(c, o) {
                 return [ c[0] + o[0], c[1] + o[1], c[2] + o[2] ];
             }
+            function container(c) {
+                c = zoomedBy(c, Math.round(c[2])-c[2]);
+                return [ Math.floor(c[0]), Math.floor(c[1]), c[2] ];
+            }
 
             // ----- end Coordinate manipulation
 
             window.onload = function() {
             
-                var chart = d3.select("body")
+                var map = d3.select("body")
                                 .append("div")
                                     .attr("class", "map")
                                     .style("width", "100%")
                                     .style("height", "100%");
                                     
                 redraw = function() {
-
-                    //var t = Date.now();
-                    //var t0 = t;
 
                     // apply coord limits
                     if (coord[2] > 18) {
@@ -190,7 +235,7 @@
                         if (c[2] > 0) {
                             var src = provider(c);
                             if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
-                                var parent = zoomedBy(c, -1),
+                                var parent = container(zoomedBy(c, -1)),
                                     parentSrc = provider(parent);
                                 if (parentSrc in loadedTiles && !(parentSrc in uniqueCompensations)) {
                                     uniqueCompensations[parentSrc] = true;
@@ -201,22 +246,16 @@
                     });
                     visibleCoords = compensationCoords.concat(visibleCoords);
 
-                    var map = chart.selectAll('img.tile')
+                    var tiles = map.selectAll('img.tile')
                        .data(visibleCoords, String);
 
                     // setup new things                        
-                    map.enter().append('img')
-                        .each(addToQueue) // sets img src 8 at a time
+                    tiles.enter().append('img')
                         .attr("id", String)
+                        .each(addToQueue) // sets img src 8 at a time using provider()
                         .attr("class", "tile")
-                        .attr("src", "about:blank") // src from provider() is done in a queue
                         .style("opacity", "0.0")
                         .style("z-index", function(d) { return d[2] })
-//                        .style('-webkit-transform', transform)
-                        .style("left", left)
-                        .style("top", top)
-                        .style("width", width)
-                        .style("height", height)
                         .on('load', function(c) {
                             loadedTiles[this.src] = Date.now();
                             d3.select(this)
@@ -224,40 +263,33 @@
                                     .duration(250)
                                   .style("opacity", "1.0");
                             removeOpenRequest(this);
-                            processQueue();
+                            // request redraw (which will also check queue)
                             d3.timer(redraw,100); // TODO: only remove compensation tiles for this tile instead of a full redraw
                         });
 
-                    // update positions
-//                    map.style('-webkit-transform', transform);
-                    map.style("left", left)
-                       .style("top", top)
-                       .style("width", width)
-                       .style("height", height);
-                    
                     // clean up old things
-                    map.exit() 
+                    tiles.exit() 
                         .each(removeFromQueue)
-                        .filter(function(d) {
-                            if (!this.complete) {
-                                // kill it now
-                                this.src = 'about:blank';
-                                d3.select(this).remove();
-                                return false;
-                            }
-                            return true;
-                        })
-//                        .style('-webkit-transform', transform)
-                        .style("left", left)
-                        .style("top", top)
-                        .style("width", width)
-                        .style("height", height)
                         .transition()
                             .style("opacity", "0.0")
                             .duration(250)
                             .delay(250)
-                            .remove();// */
+                            .remove();
                     
+                    // update all positions, enter/update/exit alike
+                    if (transformProperty) {
+                        map.selectAll('img.tile')
+                            .style(transformProperty, transform);
+                    } else {
+                        map.selectAll('img.tile')
+                            .map(stylePrepare)
+                            .style("left", left)
+                            .style("top", top)
+                            .style("width", width)
+                            .style("height", height);
+                    }                    
+                    
+                    // see what's new
                     processQueue();
 
                     return true;
@@ -265,8 +297,7 @@
                 
                 d3.timer(redraw);
                 
-                chart
-                    .on('mousedown.map', function() {
+                map.on('mousedown.map', function() {
                         var prevMouse = [ d3.event.pageX, d3.event.pageY ];
                         d3.select(window)
                             .on('mousemove.map', function() {
@@ -365,10 +396,11 @@
 		        border: 0;
 		    }
 		    .map {
-		        position: relative;
+		        position: absolute;
 		        overflow: hidden;		    
 		    }
 		    .tile {
+		        display: block;
 		        position: absolute;
 		        margin: 0;
 		        padding: 0;
