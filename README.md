@@ -4,7 +4,9 @@ There's a CSS 3D transform mode in here as well, but this version just uses norm
 
 Coordinate and tile positioning logic cribbed from Modest Maps. 
 
-A one day hack... Doubtless still glitches to be ironed out!
+A ~~one~~ two day hack... Doubtless still glitches to be ironed out! 
+
+No projections, no layers, no double click, no touching, no overlays.
 
 Queueing img requests seems overkill but smooths things out a lot.
 
