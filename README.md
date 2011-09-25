@@ -1,6 +1,6 @@
 An exercise in learning D3 for DOM manipulation and transitions.
 
-There's a CSS 3D transform mode in here as well, but this version just uses normal CSS.
+Uses CSS (3D) transforms where available, falls back to normal CSS if not.
 
 Coordinate and tile positioning logic cribbed from Modest Maps. 
 
