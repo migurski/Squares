@@ -12,7 +12,7 @@
              (C) 2011 Tom Carden, released under the same BSD license as D3 itself: 
              https://github.com/mbostock/d3/blob/master/LICENSE
              Forks welcome! -->
-        <script src="http://mbostock.github.com/d3/d3.js"></script>
+        <script src="http://mbostock.github.com/d3/d3.min.js"></script>
         <script type="text/javascript">
 
             var coord = [ 2, 2, 2 ],        // col, row, zoom
@@ -39,12 +39,13 @@
                 if (('WebKitCSSMatrix' in window) && ('m11' in new WebKitCSSMatrix())) {
                     return function(scale,x,y,cx,cy) {
                         scale = scale || 1;
-                        return 'matrix3d(' +
+                        return 'translate3d(' + [ x, y, '0px' ].join('px,') + ') scale3d(' + [ scale,scale,1 ].join(',') + ')';
+/*                        return 'matrix3d(' +
                             [ scale, '0,0,0,0',
                               scale, '0,0,0,0,1,0',
                               (x + ((cx * scale) - cx)).toFixed(4),
                               (y + ((cy * scale) - cy)).toFixed(4),
-                              '0,1'].join(',') + ')';
+                              '0,1'].join(',') + ')'; */
                     }
                 } else {
                     return function(scale,x,y,cx,cy) {
@@ -260,7 +261,7 @@
                         return d3.ascending(c1[2],c2[2]);
                     })*/          
                     function addParentIfNeeded(c) {
-                        if (c[2] > 0) {
+                        if (c[2] > 0 && coord[2] - c[2] < 3) {
                             var src = provider(c);
                             if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
                                 c = container(zoomedBy(c, -1));
@@ -269,13 +270,13 @@
                                     uniqueCompensations[src] = true;
                                     compensationCoords.push(c);
                                 }
+                                // better continuity if we loop, but slower (needs tuning)
+                                addParentIfNeeded(c);
                             }
                         }
                     }                                            
                     visibleCoords.forEach(addParentIfNeeded);
                     visibleCoords = compensationCoords.concat(visibleCoords);
-
-                    //console.log(visibleCoords.length, 'visibleCoords');
 
                     var tiles = map.selectAll('img.tile')
                        .data(visibleCoords, String);
@@ -288,15 +289,16 @@
                         .style("display", "none") // opacity doesn't seem to "take" until load event fires
                         .style("z-index", function(d) { return 100 * d[2] })
                         .on('load', function(d) {
-                            //console.log('loaded',d);
+
                             loadedTiles[this.src] = Date.now();
+                            
                             d3.select(this)
                               .style("display", "block")
                               .style("opacity", 0.0)
                                 .transition()
                                   .duration(250)
                                     .style("opacity", 1.0);
-                            //console.log(t);
+
                             removeOpenRequest(this);
                             // request redraw (which will also check queue)
                             d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
@@ -395,7 +397,7 @@
                     d3.event.stopPropagation();                        
                 }
                     
-                d3.select(window).on('resize', function() {
+                d3.select(window).on('resize.map', function() {
                     center = [ window.innerWidth/2, window.innerHeight/2 ] 
                     d3.timer(redraw);
                 });
@@ -457,6 +459,7 @@
 		        margin: 0;
 		        padding: 0;
 		        border: 0;
+		        -webkit-transform-origin: 0px 0px;
 		    }
 		    p {
 		        font: bold 12px sans-serif;
