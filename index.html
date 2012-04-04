@@ -348,14 +348,14 @@
                 d3.timer(redraw);
                 
                 map.on('mousedown.map', function() {
-                        var prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                        var prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
                         d3.select(window)
                             .on('mousemove.map', function() {
                                 var mouse = prevMouse;
-                                prevMouse = [ d3.event.pageX, d3.event.pageY ];
+                                prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
                                 coord = offsetBy(coord, {
-                                    c: -((prevMouse[0] - mouse[0]) / tileSize.w),
-                                    r: -((prevMouse[1] - mouse[1]) / tileSize.h),
+                                    c: -((prevMouse.x - mouse.x) / tileSize.w),
+                                    r: -((prevMouse.y - mouse.y) / tileSize.h),
                                     z: 0
                                 });
                                 d3.event.preventDefault();
@@ -378,16 +378,16 @@
                     // 18 = max zoom, 0 = min zoom
                     var delta = Math.min(18-coord.z,Math.max(0-coord.z,d3_behavior_zoomDelta()));
                     if (delta != 0) {
-                        var mouse = [ d3.event.pageX, d3.event.pageY ];
+                        var mouse = {x: d3.event.pageX, y: d3.event.pageY};
                         coord = offsetBy(coord, {
-                            c: ((mouse[0]-center.x) / tileSize.w),
-                            r: ((mouse[1]-center.y) / tileSize.h),
+                            c: ((mouse.x-center.x) / tileSize.w),
+                            r: ((mouse.y-center.y) / tileSize.h),
                             z: 0
                         });
                         coord = zoomedBy(coord, delta);
                         coord = offsetBy(coord, {
-                            c: -((mouse[0]-center.x) / tileSize.w),
-                            r: -((mouse[1]-center.y) / tileSize.h),
+                            c: -((mouse.x-center.x) / tileSize.w),
+                            r: -((mouse.y-center.y) / tileSize.h),
                             z: 0
                         });
                         d3.timer(redraw);
