@@ -17,7 +17,7 @@
 
             var coord = {c: 2, r: 2, z: 2}, // col, row, zoom
                 roundCoord = null,          // coord at an integer zoom level
-                tileSize = [ 256, 256 ],    // px
+                tileSize = {w: 256, h: 256},// px
                 redraw = null,              // visible here for console hacking
                 loadedTiles = {},           // [src] --> millis when load completed
                 w = window.innerWidth,
@@ -145,34 +145,34 @@
                 var scale = Math.pow(2, coord.z-d.z),
                     power = Math.pow(2, d.z - roundCoord.z),
                     centerCol = roundCoord.c * power;
-                return Math.round(center[0] + (d.c - centerCol) * tileSize[0] * scale) + 'px'; 
+                return Math.round(center[0] + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
             }
             function top(d) { 
                 var scale = Math.pow(2, coord.z-d.z),
                     power = Math.pow(2, d.z - roundCoord.z),
                     centerRow = roundCoord.r * power;
-                return Math.round(center[1] + (d.r - centerRow) * tileSize[1] * scale) + 'px'; 
+                return Math.round(center[1] + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
             }
             function width(d) { 
                 var scale = Math.pow(2, coord.z-d.z);
-                return Math.ceil(scale * tileSize[0])+'px'; 
+                return Math.ceil(scale * tileSize.w)+'px'; 
             }
             function height(d) { 
                 var scale = Math.pow(2, coord.z-d.z);
-                return Math.ceil(scale * tileSize[1])+'px'; 
+                return Math.ceil(scale * tileSize.h)+'px'; 
             }          
             
             // for 3D webkit mode
             function transform(d) {
                 var scale = Math.pow(2, coord.z-d.z);
                 // adjust to nearest whole pixel scale (thx @tmcw)
-                if (scale * tileSize[0] % 1) {
-                    scale += (1 - scale * tileSize[0] % 1) / tileSize[0];
+                if (scale * tileSize.w % 1) {
+                    scale += (1 - scale * tileSize.w % 1) / tileSize.w;
                 }                
                 var zoomedCoord = zoomedBy(roundCoord, d.z - roundCoord.z),
-                    x = Math.round(center[0] + (d.c - zoomedCoord.c) * tileSize[0] * scale),
-                    y = Math.round(center[1] + (d.r - zoomedCoord.r) * tileSize[1] * scale);
-                return matrixString(scale, x, y, tileSize[0]/2.0, tileSize[1]/2.0);
+                    x = Math.round(center[0] + (d.c - zoomedCoord.c) * tileSize.w * scale),
+                    y = Math.round(center[1] + (d.r - zoomedCoord.r) * tileSize.h * scale);
+                return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
             }
             
             // ----- end Tile Positioning Functions
@@ -211,8 +211,8 @@
                     }
                     
                     // find coordinate extents of map
-                    var tl = offsetBy(coord, {c: -center[0] / tileSize[0], r: -center[1] / tileSize[1], z: 0}),
-                        br = offsetBy(coord, {c: center[0] / tileSize[0], r: center[1] / tileSize[1], z: 0});
+                    var tl = offsetBy(coord, {c: -center[0] / tileSize.w, r: -center[1] / tileSize.h, z: 0}),
+                        br = offsetBy(coord, {c: center[0] / tileSize.w, r: center[1] / tileSize.h, z: 0});
 
                     // round coords to "best" zoom level
                     roundCoord = zoomedBy(coord, Math.round(coord.z)-coord.z);
@@ -354,8 +354,8 @@
                                 var mouse = prevMouse;
                                 prevMouse = [ d3.event.pageX, d3.event.pageY ];
                                 coord = offsetBy(coord, {
-                                    c: -((prevMouse[0] - mouse[0]) / tileSize[0]),
-                                    r: -((prevMouse[1] - mouse[1]) / tileSize[1]),
+                                    c: -((prevMouse[0] - mouse[0]) / tileSize.w),
+                                    r: -((prevMouse[1] - mouse[1]) / tileSize.h),
                                     z: 0
                                 });
                                 d3.event.preventDefault();
@@ -380,14 +380,14 @@
                     if (delta != 0) {
                         var mouse = [ d3.event.pageX, d3.event.pageY ];
                         coord = offsetBy(coord, {
-                            c: ((mouse[0]-center[0]) / tileSize[0]),
-                            r: ((mouse[1]-center[1]) / tileSize[1]),
+                            c: ((mouse[0]-center[0]) / tileSize.w),
+                            r: ((mouse[1]-center[1]) / tileSize.h),
                             z: 0
                         });
                         coord = zoomedBy(coord, delta);
                         coord = offsetBy(coord, {
-                            c: -((mouse[0]-center[0]) / tileSize[0]),
-                            r: -((mouse[1]-center[1]) / tileSize[1]),
+                            c: -((mouse[0]-center[0]) / tileSize.w),
+                            r: -((mouse[1]-center[1]) / tileSize.h),
                             z: 0
                         });
                         d3.timer(redraw);
