@@ -22,7 +22,7 @@
                 loadedTiles = {},           // [src] --> millis when load completed
                 w = window.innerWidth,
                 h = window.innerHeight,
-                center = [ w/2, h/2 ];      // center of map in pixels
+                center = {x: w/2, y: h/2 }; // center of map in pixels
                 
             // borrowed from Modest Maps, inspired by LeafletJS
             var transformProperty = (function(props) {
@@ -145,13 +145,13 @@
                 var scale = Math.pow(2, coord.z-d.z),
                     power = Math.pow(2, d.z - roundCoord.z),
                     centerCol = roundCoord.c * power;
-                return Math.round(center[0] + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
+                return Math.round(center.x + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
             }
             function top(d) { 
                 var scale = Math.pow(2, coord.z-d.z),
                     power = Math.pow(2, d.z - roundCoord.z),
                     centerRow = roundCoord.r * power;
-                return Math.round(center[1] + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
+                return Math.round(center.y + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
             }
             function width(d) { 
                 var scale = Math.pow(2, coord.z-d.z);
@@ -170,8 +170,8 @@
                     scale += (1 - scale * tileSize.w % 1) / tileSize.w;
                 }                
                 var zoomedCoord = zoomedBy(roundCoord, d.z - roundCoord.z),
-                    x = Math.round(center[0] + (d.c - zoomedCoord.c) * tileSize.w * scale),
-                    y = Math.round(center[1] + (d.r - zoomedCoord.r) * tileSize.h * scale);
+                    x = Math.round(center.x + (d.c - zoomedCoord.c) * tileSize.w * scale),
+                    y = Math.round(center.y + (d.r - zoomedCoord.r) * tileSize.h * scale);
                 return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
             }
             
@@ -211,8 +211,8 @@
                     }
                     
                     // find coordinate extents of map
-                    var tl = offsetBy(coord, {c: -center[0] / tileSize.w, r: -center[1] / tileSize.h, z: 0}),
-                        br = offsetBy(coord, {c: center[0] / tileSize.w, r: center[1] / tileSize.h, z: 0});
+                    var tl = offsetBy(coord, {c: -center.x / tileSize.w, r: -center.y / tileSize.h, z: 0}),
+                        br = offsetBy(coord, {c: center.x / tileSize.w, r: center.y / tileSize.h, z: 0});
 
                     // round coords to "best" zoom level
                     roundCoord = zoomedBy(coord, Math.round(coord.z)-coord.z);
@@ -380,14 +380,14 @@
                     if (delta != 0) {
                         var mouse = [ d3.event.pageX, d3.event.pageY ];
                         coord = offsetBy(coord, {
-                            c: ((mouse[0]-center[0]) / tileSize.w),
-                            r: ((mouse[1]-center[1]) / tileSize.h),
+                            c: ((mouse[0]-center.x) / tileSize.w),
+                            r: ((mouse[1]-center.y) / tileSize.h),
                             z: 0
                         });
                         coord = zoomedBy(coord, delta);
                         coord = offsetBy(coord, {
-                            c: -((mouse[0]-center[0]) / tileSize.w),
-                            r: -((mouse[1]-center[1]) / tileSize.h),
+                            c: -((mouse[0]-center.x) / tileSize.w),
+                            r: -((mouse[1]-center.y) / tileSize.h),
                             z: 0
                         });
                         d3.timer(redraw);
@@ -397,7 +397,7 @@
                 }
                     
                 d3.select(window).on('resize.map', function() {
-                    center = [ window.innerWidth/2, window.innerHeight/2 ] 
+                    center = {x: window.innerWidth/2, y: window.innerHeight/2}
                     d3.timer(redraw);
                 });
   
