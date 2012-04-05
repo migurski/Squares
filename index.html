@@ -264,6 +264,25 @@
                         y = Math.round(center.y + (tile.r - zoomedCoord.r) * tileSize.h * scale);
                     return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
                 }
+                
+               /**
+                * Called with selection.on(), this == <img>.
+                */
+                function onTileLoaded(tile)
+                {
+                    loadedTiles[this.src] = Date.now();
+                    
+                    d3.select(this)
+                      .style("display", "block")
+                      .style("opacity", 0.0)
+                        .transition()
+                          .duration(250)
+                            .style("opacity", 1.0);
+
+                    queue.removeOpen(this);
+                    // request redraw (which will also check queue)
+                    d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
+                }
 
                 function redraw()
                 {
@@ -339,21 +358,7 @@
                         .style("opacity", 0.0)
                         .style("display", "none") // opacity doesn't seem to "take" until load event fires
                         .style("z-index", function(tile) { return 100 * tile.z })
-                        .on('load', function(tile) {
-
-                            loadedTiles[this.src] = Date.now();
-                            
-                            d3.select(this)
-                              .style("display", "block")
-                              .style("opacity", 0.0)
-                                .transition()
-                                  .duration(250)
-                                    .style("opacity", 1.0);
-
-                            queue.removeOpen(this);
-                            // request redraw (which will also check queue)
-                            d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
-                        })
+                        .on('load', onTileLoaded)
                         .each(queue.addTo) // sets img src 8 at a time using provider()
 
                     // TODO: on('error')?
@@ -399,32 +404,44 @@
                 
                 d3.timer(redraw);
                 
-                map.on('mousedown.map', function() {
-                        var prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
-                        d3.select(window)
-                            .on('mousemove.map', function() {
-                                var mouse = prevMouse;
-                                prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
-                                coord = Coordinates.offsetBy(coord, {
-                                    c: -((prevMouse.x - mouse.x) / tileSize.w),
-                                    r: -((prevMouse.y - mouse.y) / tileSize.h),
-                                    z: 0
-                                });
-                                d3.event.preventDefault();
-                                d3.event.stopPropagation();
-                                d3.timer(redraw);
-                            })
-                            .on('mouseup.map', function() {
-                                prevMouse = null;
-                                d3.select(window)
-                                    .on('mousemove.map',null)
-                                    .on('mouseup.map',null);
-                            })
+                map.on('mousedown.map', onMouseDown)
+                   .on('mousewheel.map', onWheel)
+                   .on('DOMMouseScroll.map', onWheel);
+                
+                d3.select(window).on('resize.map', onResize);
+                
+                function onMouseDown()
+                {
+                    var prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
+
+                    d3.select(window)
+                        .on('mousemove.map', onMouseMove)
+                        .on('mouseup.map', onMouseUp)
+                    d3.event.preventDefault();
+                    d3.event.stopPropagation();                        
+                    
+                    function onMouseMove()
+                    {
+                        var mouse = prevMouse;
+                        prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
+                        coord = Coordinates.offsetBy(coord, {
+                            c: -((prevMouse.x - mouse.x) / tileSize.w),
+                            r: -((prevMouse.y - mouse.y) / tileSize.h),
+                            z: 0
+                        });
                         d3.event.preventDefault();
-                        d3.event.stopPropagation();                        
-                    })
-                    .on('mousewheel.map', onWheel)
-                    .on('DOMMouseScroll.map', onWheel);
+                        d3.event.stopPropagation();
+                        d3.timer(redraw);
+                    }
+                    
+                    function onMouseUp()
+                    {
+                        prevMouse = null;
+                        d3.select(window)
+                            .on('mousemove.map',null)
+                            .on('mouseup.map',null);
+                    }
+                }
                 
                 function onWheel() {
                     // 18 = max zoom, 0 = min zoom
@@ -448,10 +465,11 @@
                     d3.event.stopPropagation();                        
                 }
                     
-                d3.select(window).on('resize.map', function() {
+                function onResize()
+                {
                     center = {x: window.innerWidth/2, y: window.innerHeight/2}
                     d3.timer(redraw);
-                });
+                }
             };
 
             window.onload = function() {
