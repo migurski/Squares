@@ -52,10 +52,10 @@
             })();
 
             // make a tile provider that knows how to wrap tiles around the world
-            function provider(d) {
-                var c = {r: d.r, c: d.c, z: d.z};
+            function provider(tile) {
+                var c = {r: tile.r, c: tile.c, z: tile.z};
                 var minCol = 0, 
-                    maxCol = Math.pow(2,d.z);                        
+                    maxCol = Math.pow(2,tile.z);                        
                 while (c.c < minCol) c.c += maxCol;
                 while (c.c >= maxCol) c.c -= maxCol;
                 var z = c.z, x = c.c, y = c.r;
@@ -80,9 +80,9 @@
                /**
                 * Called with selection.each(), this == <img>.
                 */
-                function addTo(d,i)
+                function addTo(tile, i)
                 {
-                    var src = provider(d);
+                    var src = provider(tile);
                     if (src in loadedTiles) {
                         // if we've seen it this session the browser cache probably has it                    
                         d3.select(this).attr("src", src);
@@ -96,12 +96,12 @@
                /**
                 * Called with selection.each(), this == <img>.
                 */
-                function removeFrom(d,i)
+                function removeFrom(tile, i)
                 {
                     // attempt to cancel loading for incomplete tiles
                     // and prevent very large/tiny tiles from being scaled
                     // (remove these immediately so they don't slow down positioning)
-                    if (!this.complete || (coord.z - d.z > 5) || (d.z - coord.z > 2)) {
+                    if (!this.complete || (coord.z - tile.z > 5) || (tile.z - coord.z > 2)) {
                         this.src = null;
                         d3.select(this).remove();
                     }
@@ -203,38 +203,65 @@
                 var map = d3.select(parent),
                     queue = Queue(coord, loadedTiles);
     
-                // remove round/ceil for greater accuracy but visible seams
-                function left(d) { 
-                    var scale = Math.pow(2, coord.z-d.z),
-                        power = Math.pow(2, d.z - roundCoord.z),
+               /**
+                * Return CSS left property value for a tile.
+                *
+                * Remove Math.round() for greater accuracy but visible seams
+                */
+                function left(tile)
+                { 
+                    var scale = Math.pow(2, coord.z - tile.z),
+                        power = Math.pow(2, tile.z - roundCoord.z),
                         centerCol = roundCoord.c * power;
-                    return Math.round(center.x + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
+                    return Math.round(center.x + (tile.c - centerCol) * tileSize.w * scale) + 'px'; 
                 }
-                function top(d) { 
-                    var scale = Math.pow(2, coord.z-d.z),
-                        power = Math.pow(2, d.z - roundCoord.z),
+
+               /**
+                * Return CSS top property value for a tile.
+                *
+                * Remove Math.round() for greater accuracy but visible seams
+                */
+                function top(tile)
+                { 
+                    var scale = Math.pow(2, coord.z - tile.z),
+                        power = Math.pow(2, tile.z - roundCoord.z),
                         centerRow = roundCoord.r * power;
-                    return Math.round(center.y + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
+                    return Math.round(center.y + (tile.r - centerRow) * tileSize.h * scale) + 'px'; 
                 }
-                function width(d) { 
-                    var scale = Math.pow(2, coord.z-d.z);
+
+               /**
+                * Return CSS width property value for a tile.
+                *
+                * Remove Math.ceil() for greater accuracy but visible seams
+                */
+                function width(tile)
+                {
+                    var scale = Math.pow(2, coord.z - tile.z);
                     return Math.ceil(scale * tileSize.w)+'px'; 
                 }
-                function height(d) { 
-                    var scale = Math.pow(2, coord.z-d.z);
+
+               /**
+                * Return CSS height property value for a tile.
+                *
+                * Remove Math.ceil() for greater accuracy but visible seams
+                */
+                function height(tile)
+                { 
+                    var scale = Math.pow(2, coord.z - tile.z);
                     return Math.ceil(scale * tileSize.h)+'px'; 
                 }          
                 
                 // for 3D webkit mode
-                function transform(d) {
-                    var scale = Math.pow(2, coord.z-d.z);
+                function transform(tile)
+                {
+                    var scale = Math.pow(2, coord.z - tile.z);
                     // adjust to nearest whole pixel scale (thx @tmcw)
                     if (scale * tileSize.w % 1) {
                         scale += (1 - scale * tileSize.w % 1) / tileSize.w;
                     }                
-                    var zoomedCoord = Coordinates.zoomedBy(roundCoord, d.z - roundCoord.z),
-                        x = Math.round(center.x + (d.c - zoomedCoord.c) * tileSize.w * scale),
-                        y = Math.round(center.y + (d.r - zoomedCoord.r) * tileSize.h * scale);
+                    var zoomedCoord = Coordinates.zoomedBy(roundCoord, tile.z - roundCoord.z),
+                        x = Math.round(center.x + (tile.c - zoomedCoord.c) * tileSize.w * scale),
+                        y = Math.round(center.y + (tile.r - zoomedCoord.r) * tileSize.h * scale);
                     return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
                 }
 
@@ -278,36 +305,24 @@
                     // not strictly necessary but helps with continuity on slow connections
                     var compensationCoords = [];
                         uniqueCompensations = {};
-                    /*function addPyramidParents(c) {
-                        if (c.z > 0) {
-                            c = Coordinates.container(Coordinates.zoomedBy(c, -1));
-                            var src = provider(c);
-                            if (!(src in uniqueCompensations)) {
-                                uniqueCompensations[src] = true;
-                                compensationCoords.push(c);
-                            }
-                            addPyramidParents(c);
-                        }
-                    } 
-                    visibleCoords.forEach(addPyramidParents);
-                    compensationCoords.sort(function(c1,c2) {
-                        return d3.ascending(c1.z,c2.z);
-                    })*/          
-                    function addParentIfNeeded(c) {
-                        if (c.z > 0 && coord.z - c.z < 3) {
-                            var src = provider(c);
+
+                    function addParentIfNeeded(tile)
+                    {
+                        if (tile.z > 0 && coord.z - tile.z < 3) {
+                            var src = provider(tile);
                             if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
-                                c = Coordinates.container(Coordinates.zoomedBy(c, -1));
-                                src = provider(c);
+                                tile = Coordinates.container(Coordinates.zoomedBy(tile, -1));
+                                src = provider(tile);
                                 if (src in loadedTiles && !(src in uniqueCompensations)) {
                                     uniqueCompensations[src] = true;
-                                    compensationCoords.push(c);
+                                    compensationCoords.push(tile);
                                 }
                                 // better continuity if we loop, but slower (needs tuning)
-                                addParentIfNeeded(c);
+                                addParentIfNeeded(tile);
                             }
                         }
-                    }                                            
+                    }
+
                     visibleCoords.forEach(addParentIfNeeded);
                     visibleCoords = compensationCoords.concat(visibleCoords);
 
@@ -323,8 +338,8 @@
                         .attr("class", "tile")
                         .style("opacity", 0.0)
                         .style("display", "none") // opacity doesn't seem to "take" until load event fires
-                        .style("z-index", function(d) { return 100 * d.z })
-                        .on('load', function(d) {
+                        .style("z-index", function(tile) { return 100 * tile.z })
+                        .on('load', function(tile) {
 
                             loadedTiles[this.src] = Date.now();
                             
