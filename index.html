@@ -74,10 +74,12 @@
            /**
             * Closure for a single queue.
             *
+            * loadedTiles is an object: [src] --> msec when load completed.
+            *
             * Returns an object with addTo, removeFrom, removeOpen,
             * and process functions attached.
             */
-            function Queue()
+            function Queue(loadedTiles)
             {
                 var queue = [],
                     queueById = {},
@@ -157,8 +159,6 @@
                 return {addTo: addTo, removeFrom: removeFrom, removeOpen: removeOpen, process: process};
             };
             
-            var queue = Queue();
-            
             // ----- Tile Positioning Functions
 
             // remove round/ceil for greater accuracy but visible seams
@@ -233,17 +233,14 @@
                 }
             
             };
-
-            window.onload = function() {
             
-                var map = d3.select("body")
-                                .insert("div","p")
-                                    .attr("class", "map")
-                                    .style("width", "100%")
-                                    .style("height", "100%");
-                                    
-                redraw = function() {
+            function Grid(parent)
+            {
+                var map = d3.select(parent),
+                    queue = Queue(loadedTiles);
 
+                function redraw()
+                {
                     // apply coord limits
                     if (coord.z > 18) {
                         coord = Coordinates.zoomedBy(coord, 18-coord.z);
@@ -371,14 +368,14 @@
                         map.selectAll('img.tile')
                             .style(transformProperty, transform);                        
                     } else {
-                        map.selectAll('img.tile')
+                        this.map.selectAll('img.tile')
                             .style("left", left)
                             .style("top", top)
                             .style("width", width)
                             .style("height", height);
                     }                    
 
-                    //console.log(map.selectAll('img.tile')[0].length, 'img.tiles');
+                    //console.log(this.map.selectAll('img.tile')[0].length, 'img.tiles');
                     
                     // see what's new
                     queue.process();
@@ -441,6 +438,11 @@
                     center = {x: window.innerWidth/2, y: window.innerHeight/2}
                     d3.timer(redraw);
                 });
+            };
+
+            window.onload = function() {
+            
+                Grid('#map');
   
             }
             
@@ -486,7 +488,7 @@
 		        padding: 0;
 		        border: 0;
 		    }
-		    div.map {
+		    #map {
 		        position: absolute;
 		        overflow: hidden;
 		        margin: 0;
@@ -519,6 +521,7 @@
 		</style>
     </head>
     <body>
+        <div id="map" style="width: 100%; height: 100%;"></div>
         <p>Tiles &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, CC-BY-SA. Courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png"></p>
     </body>
 </html>
