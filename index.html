@@ -71,73 +71,94 @@
                 return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/'+z+'/'+x+'/'+y+'.jpg';
             }
             
-            // ----- Queue stuff (should really be wrapped in an object)
-            
-            var queue = [],
-                queueById = {},
-                numOpenRequests = 0,
-                requestById = {};
-            
-            // called with .each, this == <img>
-            function addToQueue(d,i) {
-                var src = provider(d);
-                if (src in loadedTiles) {
-                    // if we've seen it this session the browser cache probably has it                    
-                    d3.select(this).attr("src", src);
-                } else {
-                    var item = { id: this.id, img: this };
-                    queue.push(item);
-                    queueById[item.id] = item;
-                }
-            }
-
-            // called with .each, this == <img>
-            function removeFromQueue(d,i) {
-                // attempt to cancel loading for incomplete tiles
-                // and prevent very large/tiny tiles from being scaled
-                // (remove these immediately so they don't slow down positioning)
-                if (!this.complete || (coord.z - d.z > 5) || (d.z - coord.z > 2)) {
-                    this.src = null;
-                    d3.select(this).remove();
-                }
-                // also clear the open request
-                removeOpenRequest(this);
-                // and mark the image null in the queue so it will be skipped
-                var item = queueById[this.id];
-                if (item) {
-                    item.img = null;
-                    delete queueById[this.id];
-                }
-            }
-
-            // called when tiles are complete /or/ canceled
-            function removeOpenRequest(img) {
-                var request = requestById[img.id];
-                if (request) {
-                    request.img = null;
-                    delete requestById[img.id];
-                    numOpenRequests--;
-                }            
-            }
-            
-            // request up to 8 things from the queue, skipping blank items
-            function processQueue() {
-                while (numOpenRequests < 8 && queue.length > 0) {
-                    var request = queue.shift();
-                    if (request.img && request.img.parentNode) {
-                        // luckily there's a magic mapping inside d3
-                        // that knows how to pass the correct data to provider()
-                        d3.select(request.img) 
-                            .attr("src", provider);
-                        requestById[request.id] = request; 
-                        numOpenRequests++;
+           /**
+            * Closure for a single queue.
+            *
+            * Returns an object with addTo, removeFrom, removeOpen,
+            * and process functions attached.
+            */
+            function Queue()
+            {
+                var queue = [],
+                    queueById = {},
+                    numOpenRequests = 0,
+                    requestById = {};
+                
+               /**
+                * Called with selection.each(), this == <img>.
+                */
+                function addTo(d,i)
+                {
+                    var src = provider(d);
+                    if (src in loadedTiles) {
+                        // if we've seen it this session the browser cache probably has it                    
+                        d3.select(this).attr("src", src);
+                    } else {
+                        var item = { id: this.id, img: this };
+                        queue.push(item);
+                        queueById[item.id] = item;
                     }
-                    delete queueById[request.id];                        
                 }
-            }
+    
+               /**
+                * Called with selection.each(), this == <img>.
+                */
+                function removeFrom(d,i)
+                {
+                    // attempt to cancel loading for incomplete tiles
+                    // and prevent very large/tiny tiles from being scaled
+                    // (remove these immediately so they don't slow down positioning)
+                    if (!this.complete || (coord.z - d.z > 5) || (d.z - coord.z > 2)) {
+                        this.src = null;
+                        d3.select(this).remove();
+                    }
+                    // also clear the open request
+                    removeOpen(this);
+                    // and mark the image null in the queue so it will be skipped
+                    var item = queueById[this.id];
+                    if (item) {
+                        item.img = null;
+                        delete queueById[this.id];
+                    }
+                }
+    
+               /**
+                * Called when tiles are complete /or/ canceled.
+                */
+                function removeOpen(img)
+                {
+                    var request = requestById[img.id];
+                    if (request) {
+                        request.img = null;
+                        delete requestById[img.id];
+                        numOpenRequests--;
+                    }            
+                }
+                
+               /**
+                * Request up to 8 things from the queue, skipping blank items.
+                */
+                function process()
+                {
+                    while (numOpenRequests < 8 && queue.length > 0) {
+                        var request = queue.shift();
+                        if (request.img && request.img.parentNode) {
+                            // luckily there's a magic mapping inside d3
+                            // that knows how to pass the correct data to provider()
+                            d3.select(request.img) 
+                                .attr("src", provider);
+                            requestById[request.id] = request; 
+                            numOpenRequests++;
+                        }
+                        delete queueById[request.id];                        
+                    }
+                }
+                
+                return {addTo: addTo, removeFrom: removeFrom, removeOpen: removeOpen, process: process};
+            };
             
-            // ----- end Queue stuff
-
+            var queue = Queue();
+            
             // ----- Tile Positioning Functions
 
             // remove round/ceil for greater accuracy but visible seams
@@ -318,11 +339,11 @@
                                   .duration(250)
                                     .style("opacity", 1.0);
 
-                            removeOpenRequest(this);
+                            queue.removeOpen(this);
                             // request redraw (which will also check queue)
                             d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
                         })
-                        .each(addToQueue) // sets img src 8 at a time using provider()
+                        .each(queue.addTo) // sets img src 8 at a time using provider()
 
                     // TODO: on('error')?
 
@@ -333,7 +354,7 @@
 
                     // clean up old things
                     tiles.exit()
-                        .each(removeFromQueue)
+                        .each(queue.removeFrom)
                         .transition()
                           .duration(250)
                             .style("opacity", 0.0)
@@ -360,7 +381,7 @@
                     //console.log(map.selectAll('img.tile')[0].length, 'img.tiles');
                     
                     // see what's new
-                    processQueue();
+                    queue.process();
 
                     return true;
                 }
