@@ -14,7 +14,7 @@
              Forks welcome! -->
         <script src="http://mbostock.github.com/d3/d3.min.js"></script>
         <script type="text/javascript">
-
+        
             var coord = {c: 2, r: 2, z: 2}, // col, row, zoom
                 roundCoord = null,          // coord at an integer zoom level
                 tileSize = {w: 256, h: 256},// px
@@ -169,7 +169,7 @@
                 if (scale * tileSize.w % 1) {
                     scale += (1 - scale * tileSize.w % 1) / tileSize.w;
                 }                
-                var zoomedCoord = zoomedBy(roundCoord, d.z - roundCoord.z),
+                var zoomedCoord = Coordinates.zoomedBy(roundCoord, d.z - roundCoord.z),
                     x = Math.round(center.x + (d.c - zoomedCoord.c) * tileSize.w * scale),
                     y = Math.round(center.y + (d.r - zoomedCoord.r) * tileSize.h * scale);
                 return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
@@ -177,21 +177,41 @@
             
             // ----- end Tile Positioning Functions
             
-            // ----- Coordinate manipulation
+           /**
+            * Collection of static functions for operating on coordinates.
+            *
+            * Coordinates are simple objects with three properties:
+            * "r" (row), "c" (column), and "z" (zoom).
+            */
+            var Coordinates = {
             
-            function zoomedBy(c, dz) {
-                var power = Math.pow(2,dz);
-                return {c: c.c * power, r: c.r * power, z: c.z + dz};
-            }
-            function offsetBy(c, o) {
-                return {c: c.c + o.c, r: c.r + o.r, z: c.z + o.z};
-            }
-            function container(c) {
-                c = zoomedBy(c, Math.round(c.z)-c.z);
-                return {c: Math.floor(c.c), r: Math.floor(c.r), z: c.z};
-            }
-
-            // ----- end Coordinate manipulation
+               /**
+                * Return a new coordinate, zoomed by the given amount.
+                */
+                zoomedBy: function(c, dz)
+                {
+                    var power = Math.pow(2, dz);
+                    return {c: c.c * power, r: c.r * power, z: c.z + dz};
+                },
+                
+               /**
+                * Return a new coordinate, offset by the given coordinate.
+                */
+                offsetBy: function(c, o)
+                {
+                    return {c: c.c + o.c, r: c.r + o.r, z: c.z + o.z};
+                },
+                
+               /**
+                * Return a new round-number coordinate containing the given coordinate.
+                */
+                container: function(c)
+                {
+                    c = Coordinates.zoomedBy(c, Math.round(c.z) - c.z);
+                    return {c: Math.floor(c.c), r: Math.floor(c.r), z: c.z};
+                }
+            
+            };
 
             window.onload = function() {
             
@@ -205,19 +225,19 @@
 
                     // apply coord limits
                     if (coord.z > 18) {
-                        coord = zoomedBy(coord, 18-coord.z);
+                        coord = Coordinates.zoomedBy(coord, 18-coord.z);
                     } else if (coord.z < 0) {
-                        coord = zoomedBy(coord, -coord.z);
+                        coord = Coordinates.zoomedBy(coord, -coord.z);
                     }
                     
                     // find coordinate extents of map
-                    var tl = offsetBy(coord, {c: -center.x / tileSize.w, r: -center.y / tileSize.h, z: 0}),
-                        br = offsetBy(coord, {c: center.x / tileSize.w, r: center.y / tileSize.h, z: 0});
+                    var tl = Coordinates.offsetBy(coord, {c: -center.x / tileSize.w, r: -center.y / tileSize.h, z: 0}),
+                        br = Coordinates.offsetBy(coord, {c: center.x / tileSize.w, r: center.y / tileSize.h, z: 0});
 
                     // round coords to "best" zoom level
-                    roundCoord = zoomedBy(coord, Math.round(coord.z)-coord.z);
-                    tl = zoomedBy(tl, Math.round(tl.z)-tl.z);
-                    br = zoomedBy(br, Math.round(br.z)-br.z);
+                    roundCoord = Coordinates.zoomedBy(coord, Math.round(coord.z)-coord.z);
+                    tl = Coordinates.zoomedBy(tl, Math.round(tl.z)-tl.z);
+                    br = Coordinates.zoomedBy(br, Math.round(br.z)-br.z);
 
                     // generate visible tile coords           
                     var padding = 0;
@@ -243,7 +263,7 @@
                         uniqueCompensations = {};
                     /*function addPyramidParents(c) {
                         if (c.z > 0) {
-                            c = container(zoomedBy(c, -1));
+                            c = Coordinates.container(Coordinates.zoomedBy(c, -1));
                             var src = provider(c);
                             if (!(src in uniqueCompensations)) {
                                 uniqueCompensations[src] = true;
@@ -260,7 +280,7 @@
                         if (c.z > 0 && coord.z - c.z < 3) {
                             var src = provider(c);
                             if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
-                                c = container(zoomedBy(c, -1));
+                                c = Coordinates.container(Coordinates.zoomedBy(c, -1));
                                 src = provider(c);
                                 if (src in loadedTiles && !(src in uniqueCompensations)) {
                                     uniqueCompensations[src] = true;
@@ -353,7 +373,7 @@
                             .on('mousemove.map', function() {
                                 var mouse = prevMouse;
                                 prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
-                                coord = offsetBy(coord, {
+                                coord = Coordinates.offsetBy(coord, {
                                     c: -((prevMouse.x - mouse.x) / tileSize.w),
                                     r: -((prevMouse.y - mouse.y) / tileSize.h),
                                     z: 0
@@ -379,13 +399,13 @@
                     var delta = Math.min(18-coord.z,Math.max(0-coord.z,d3_behavior_zoomDelta()));
                     if (delta != 0) {
                         var mouse = {x: d3.event.pageX, y: d3.event.pageY};
-                        coord = offsetBy(coord, {
+                        coord = Coordinates.offsetBy(coord, {
                             c: ((mouse.x-center.x) / tileSize.w),
                             r: ((mouse.y-center.y) / tileSize.h),
                             z: 0
                         });
-                        coord = zoomedBy(coord, delta);
-                        coord = offsetBy(coord, {
+                        coord = Coordinates.zoomedBy(coord, delta);
+                        coord = Coordinates.offsetBy(coord, {
                             c: -((mouse.x-center.x) / tileSize.w),
                             r: -((mouse.y-center.y) / tileSize.h),
                             z: 0
