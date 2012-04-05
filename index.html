@@ -202,6 +202,14 @@
                     
                 var map = d3.select(parent),
                     queue = Queue(coord, loadedTiles);
+                
+                d3.timer(redraw);
+                
+                map.on('mousedown.map', onMouseDown)
+                   .on('mousewheel.map', onWheel)
+                   .on('DOMMouseScroll.map', onWheel);
+                
+                d3.select(window).on('resize.map', onResize);
     
                /**
                 * Return CSS left property value for a tile.
@@ -251,7 +259,11 @@
                     return Math.ceil(scale * tileSize.h)+'px'; 
                 }          
                 
-                // for 3D webkit mode
+               /**
+                * Return CSS transform property value for a tile.
+                *
+                * For 3D webkit mode
+                */
                 function transform(tile)
                 {
                     var scale = Math.pow(2, coord.z - tile.z);
@@ -283,6 +295,20 @@
                     // request redraw (which will also check queue)
                     d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
                 }
+                
+                    // don't show above/below the poles
+                function validCoordinateFilter(tile)
+                {
+                    var minRow = 0, 
+                        maxRow = Math.pow(2, tile.z);                    
+
+                    return minRow <= tile.r && tile.r < maxRow;                
+                }
+                
+                function loadedLongAgo()
+                {
+                    return (this.src in loadedTiles) && (Date.now() - loadedTiles[this.src] > 500);
+                }
 
                 function redraw()
                 {
@@ -313,12 +339,7 @@
                         });
                     });
                     
-                    // don't show above/below the poles
-                    visibleCoords = visibleCoords.filter(function(c) {
-                        var minRow = 0, 
-                            maxRow = Math.pow(2,c.z);                    
-                        return c.r >= minRow && c.r < maxRow;                
-                    });
+                    visibleCoords = visibleCoords.filter(validCoordinateFilter);
                     
                     // explicitly preserve parent tiles for tiles we haven't already loaded
                     // not strictly necessary but helps with continuity on slow connections
@@ -364,9 +385,7 @@
                     // TODO: on('error')?
 
                     // ensure updating tiles are at opacity 1.0 (if old enough)
-                    tiles.filter(function() {
-                        return (this.src in loadedTiles) && (Date.now() - loadedTiles[this.src] > 500);
-                    }).transition().duration(250).style("opacity", 1.0);
+                    tiles.filter(loadedLongAgo).transition().duration(250).style("opacity", 1.0);
 
                     // clean up old things
                     tiles.exit()
@@ -394,21 +413,11 @@
                             .style("height", height);
                     }                    
 
-                    //console.log(this.map.selectAll('img.tile')[0].length, 'img.tiles');
-                    
                     // see what's new
                     queue.process();
 
                     return true;
                 }
-                
-                d3.timer(redraw);
-                
-                map.on('mousedown.map', onMouseDown)
-                   .on('mousewheel.map', onWheel)
-                   .on('DOMMouseScroll.map', onWheel);
-                
-                d3.select(window).on('resize.map', onResize);
                 
                 function onMouseDown()
                 {
