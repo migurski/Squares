@@ -15,15 +15,6 @@
         <script src="http://mbostock.github.com/d3/d3.min.js"></script>
         <script type="text/javascript">
         
-            var coord = {c: 2, r: 2, z: 2}, // col, row, zoom
-                roundCoord = null,          // coord at an integer zoom level
-                tileSize = {w: 256, h: 256},// px
-                redraw = null,              // visible here for console hacking
-                loadedTiles = {},           // [src] --> millis when load completed
-                w = window.innerWidth,
-                h = window.innerHeight,
-                center = {x: w/2, y: h/2 }; // center of map in pixels
-                
             // borrowed from Modest Maps, inspired by LeafletJS
             var transformProperty = (function(props) {
                 var style = document.documentElement.style;
@@ -79,7 +70,7 @@
             * Returns an object with addTo, removeFrom, removeOpen,
             * and process functions attached.
             */
-            function Queue(loadedTiles)
+            function Queue(coord, loadedTiles)
             {
                 var queue = [],
                     queueById = {},
@@ -160,41 +151,6 @@
             };
             
             // ----- Tile Positioning Functions
-
-            // remove round/ceil for greater accuracy but visible seams
-            function left(d) { 
-                var scale = Math.pow(2, coord.z-d.z),
-                    power = Math.pow(2, d.z - roundCoord.z),
-                    centerCol = roundCoord.c * power;
-                return Math.round(center.x + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
-            }
-            function top(d) { 
-                var scale = Math.pow(2, coord.z-d.z),
-                    power = Math.pow(2, d.z - roundCoord.z),
-                    centerRow = roundCoord.r * power;
-                return Math.round(center.y + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
-            }
-            function width(d) { 
-                var scale = Math.pow(2, coord.z-d.z);
-                return Math.ceil(scale * tileSize.w)+'px'; 
-            }
-            function height(d) { 
-                var scale = Math.pow(2, coord.z-d.z);
-                return Math.ceil(scale * tileSize.h)+'px'; 
-            }          
-            
-            // for 3D webkit mode
-            function transform(d) {
-                var scale = Math.pow(2, coord.z-d.z);
-                // adjust to nearest whole pixel scale (thx @tmcw)
-                if (scale * tileSize.w % 1) {
-                    scale += (1 - scale * tileSize.w % 1) / tileSize.w;
-                }                
-                var zoomedCoord = Coordinates.zoomedBy(roundCoord, d.z - roundCoord.z),
-                    x = Math.round(center.x + (d.c - zoomedCoord.c) * tileSize.w * scale),
-                    y = Math.round(center.y + (d.r - zoomedCoord.r) * tileSize.h * scale);
-                return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
-            }
             
             // ----- end Tile Positioning Functions
             
@@ -236,8 +192,51 @@
             
             function Grid(parent)
             {
+                var coord = {c: 2, r: 2, z: 2}, // col, row, zoom
+                    roundCoord = null,          // coord at an integer zoom level
+                    tileSize = {w: 256, h: 256},// px
+                    loadedTiles = {},           // [src] --> millis when load completed
+                    w = window.innerWidth,
+                    h = window.innerHeight,
+                    center = {x: w/2, y: h/2 }; // center of map in pixels
+                    
                 var map = d3.select(parent),
-                    queue = Queue(loadedTiles);
+                    queue = Queue(coord, loadedTiles);
+    
+                // remove round/ceil for greater accuracy but visible seams
+                function left(d) { 
+                    var scale = Math.pow(2, coord.z-d.z),
+                        power = Math.pow(2, d.z - roundCoord.z),
+                        centerCol = roundCoord.c * power;
+                    return Math.round(center.x + (d.c - centerCol) * tileSize.w * scale) + 'px'; 
+                }
+                function top(d) { 
+                    var scale = Math.pow(2, coord.z-d.z),
+                        power = Math.pow(2, d.z - roundCoord.z),
+                        centerRow = roundCoord.r * power;
+                    return Math.round(center.y + (d.r - centerRow) * tileSize.h * scale) + 'px'; 
+                }
+                function width(d) { 
+                    var scale = Math.pow(2, coord.z-d.z);
+                    return Math.ceil(scale * tileSize.w)+'px'; 
+                }
+                function height(d) { 
+                    var scale = Math.pow(2, coord.z-d.z);
+                    return Math.ceil(scale * tileSize.h)+'px'; 
+                }          
+                
+                // for 3D webkit mode
+                function transform(d) {
+                    var scale = Math.pow(2, coord.z-d.z);
+                    // adjust to nearest whole pixel scale (thx @tmcw)
+                    if (scale * tileSize.w % 1) {
+                        scale += (1 - scale * tileSize.w % 1) / tileSize.w;
+                    }                
+                    var zoomedCoord = Coordinates.zoomedBy(roundCoord, d.z - roundCoord.z),
+                        x = Math.round(center.x + (d.c - zoomedCoord.c) * tileSize.w * scale),
+                        y = Math.round(center.y + (d.r - zoomedCoord.r) * tileSize.h * scale);
+                    return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
+                }
 
                 function redraw()
                 {
