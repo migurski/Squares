@@ -348,9 +348,9 @@
 
                     function addParentIfNeeded(tile)
                     {
-                        if (tile.z > 0 && coord.z - tile.z < 3) {
+                        if (tile.z > 0 && tile.z > coord.z - 3) {
                             var src = provider(tile);
-                            if (!(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
+                            if ((tile.z > coord.z - 1) || !(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
                                 tile = Coordinates.container(Coordinates.zoomedBy(tile, -1));
                                 src = provider(tile);
                                 if (src in loadedTiles && !(src in uniqueCompensations)) {
