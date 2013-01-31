@@ -1,3 +1,4 @@
+///<reference path="d3types.ts" />
 import Core = module('Core');
 
 export class Map
