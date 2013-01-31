@@ -1,17 +1,17 @@
-import Coordinate = module('Coordinate');
+import Core = module('Core');
 
 export class Map
 {
-    public coordinate:Coordinate.Coordinate;
-    public center:Coordinate.Point;
-    public tilesize:Coordinate.Point;
+    public coord:Core.Coordinate;
+    public center:Core.Point;
+    public tilesize:Core.Point;
     
     constructor()
     {
     }
     
-    public roundCoord():Coordinate.Coordinate
+    public roundCoord():Core.Coordinate
     {
-        return this.coordinate.zoomBy(Math.round(this.coordinate.zoom)-this.coordinate.zoom);
+        return this.coord.zoomBy(Math.round(this.coord.zoom) - this.coord.zoom);
     }
 }

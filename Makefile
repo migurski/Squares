@@ -1,4 +1,4 @@
-Grid.min.js: Grid.ts Coordinate.ts Tile.ts Map.ts
-	tsc --out . $^
+Grid.min.js: util.js Grid.ts Core.ts Tile.ts Map.ts
+	tsc --out . Grid.ts Core.ts Tile.ts Map.ts
 	browserify -o Grid.bro.js --exports require Grid.js
-	jsmin <Grid.bro.js >$@
+	cat util.js Grid.bro.js | jsmin >$@
