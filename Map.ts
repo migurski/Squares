@@ -15,4 +15,9 @@ export class Map
     {
         return this.coord.zoomBy(Math.round(this.coord.zoom) - this.coord.zoom);
     }
+    
+    public resize(size:Core.Point):void
+    {
+        this.center = new Core.Point(size.x/2, size.y/2);
+    }
 }
