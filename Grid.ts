@@ -63,10 +63,17 @@ class Grid
 
         d3.select(window)
             .on('mousemove.map', this.getOnMousemove(start_mouse))
-            .on('mouseup.map', this.getOnMouseup())
+            .on('mouseup.map', function() { grid.onMouseup() })
 
         d3.event.preventDefault();
         d3.event.stopPropagation();                        
+    }
+    
+    public onMouseup():void
+    {
+        d3.select(window)
+            .on('mousemove.map', null)
+            .on('mouseup.map', null)
     }
     
     private getOnMousemove(start:Core.Point):()=>void
@@ -84,18 +91,6 @@ class Grid
             // d3.timer(redraw);
             
             prev = curr;
-        }
-    }
-    
-    private getOnMouseup():()=>void
-    {
-        var grid = this;
-    
-        return function()
-        {
-            d3.select(window)
-                .on('mousemove.map', null)
-                .on('mouseup.map', null);
         }
     }
     
