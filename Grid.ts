@@ -17,26 +17,75 @@ class Grid
         var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
         
         this.map = new Map.Map(center);
-        this.map.coord = new Core.Coordinate(.5, .5, 0).zoomTo(2.4);
+        this.map.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
+        
+        var grid = this;
+        
+        this.selection.on('mousedown.map', function() { grid.onMousedown() })
     }
     
     public redraw():void
     {
         var tiles = this.map.visible_tiles(),
-            map = this.map;
+            join = this.selection.selectAll('img').data(tiles, Grid.tile_key);
         
-        this.selection
-            .selectAll('img')
-            .data(tiles, Grid.tile_key)
-              .exit()
-                .remove()
-              .enter()
-                .append('img')
-                .attr('src', function(tile) { return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg' })
-                .style('left', Grid.tile_left)
-                .style('top', Grid.tile_top)
-                .style('width', Grid.tile_width)
-                .style('height', Grid.tile_height);
+        join.exit()
+            .remove();
+
+        join.enter()
+            .append('img')
+            .attr('src', function(tile) { return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg' });
+        
+        this.selection.selectAll('img')
+            .style('left', Grid.tile_left)
+            .style('top', Grid.tile_top)
+            .style('width', Grid.tile_width)
+            .style('height', Grid.tile_height);
+            
+    }
+    
+    public onMousedown():void
+    {
+        var grid = this,
+            start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
+
+        d3.select(window)
+            .on('mousemove.map', this.getOnMousemove(start_mouse))
+            .on('mouseup.map', this.getOnMouseup(start_mouse))
+
+        d3.event.preventDefault();
+        d3.event.stopPropagation();                        
+    }
+    
+    private getOnMousemove(prev:Core.Point):()=>void
+    {
+        var grid = this;
+    
+        return function()
+        {
+            var curr = new Core.Point(d3.event.pageX, d3.event.pageY),
+                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y),
+                new_center = new Core.Point(grid.map.center.x - diff.x, grid.map.center.y - diff.y),
+                next_coord = grid.map.pointCoordinate(new_center);
+            
+            grid.map.coord = next_coord;
+            grid.redraw();
+            // d3.timer(redraw);
+            
+            prev = curr;
+        }
+    }
+    
+    private getOnMouseup(start:Core.Point):()=>void
+    {
+        var grid = this;
+    
+        return function()
+        {
+            d3.select(window)
+                .on('mousemove.map', null)
+                .on('mouseup.map', null);
+        }
     }
     
     public static tile_key   (tile:Tile.Tile):string { return tile.toKey()  }

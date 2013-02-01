@@ -1,4 +1,3 @@
-///<reference path="d3types.ts" />
 import Core = module('Core');
 import Tile = module('Tile');
 
@@ -38,7 +37,7 @@ export class Map
     public pointCoordinate(point:Core.Point):Core.Coordinate
     {
         var round_coord = this.roundCoord(),
-            zoom_diff = this.coord.zoom - round_coord.zoom,
+            zoom_diff = round_coord.zoom - this.coord.zoom,
             pixel_center = this.coord.zoomBy(TileExp + zoom_diff),
             x = point.x - this.center.x,
             y = point.y - this.center.y,
@@ -56,12 +55,8 @@ export class Map
             tl = this.pointCoordinate(new Core.Point(0, 0)),
             br = this.pointCoordinate(new Core.Point(this.center.x*2, this.center.y*2));
         
-        console.log('tl:', tl.toString(), 'br:', br.toString());
-        
         tl = tl.zoomTo(round_coord.zoom).container();
         br = br.zoomTo(round_coord.zoom).container();
-        
-        console.log('tl:', tl.toString(), 'br:', br.toString());
         
         //
         // generate visible tile coords.
