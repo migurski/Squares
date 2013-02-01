@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>New Newness</title>
     <script src="http://mbostock.github.com/d3/d3.min.js"></script>
-    <script src="Grid.min.js"></script>
+    <script src="Grid.bro.js"></script>
     <style title="text/css">
     <!--
     
@@ -12,7 +12,22 @@
         {
             border: 1px solid pink;
             width: 900px;
-            height: 300px;
+            height: 350px;
+
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #map img
+        {
+            display: block;
+            position: absolute;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            -webkit-transform-origin: 0px 0px;
         }
     
     -->
@@ -23,8 +38,22 @@
     <script type="application/javascript">
     <!--
     
-        var thing = makeMap('map');
-        console.log(thing);
+        var map = makeMap('map');
+        var tiles = map.map.visible_tiles();
+        
+        for(var i in tiles)
+        {
+            console.log(tiles[i].left(map.map), tiles[i].coord.toKey().replace(',', '/'));
+            
+            var img = new Image();
+            img.src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tiles[i].coord.toKey().replace(',', '/') + '.jpg';
+            img.style.left = tiles[i].left(map.map);
+            img.style.width = tiles[i].width(map.map);
+            img.style.top = tiles[i].top(map.map);
+            img.style.height = tiles[i].height(map.map);
+            
+            map.parent.appendChild(img);
+        }
     
     //-->
     </script>

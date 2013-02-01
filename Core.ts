@@ -8,6 +8,12 @@ export class Point
         this.x = x;
         this.y = y;
     }
+    
+    public toString():string
+    {
+        return "(" + this.x.toFixed(3) + ", "
+                   + this.y.toFixed(3) + ")";
+    }
 }
 
 export class Coordinate
@@ -32,7 +38,7 @@ export class Coordinate
     
     public toKey():string
     {
-        return [Math.floor(this.zoom), Math.floor(this.column), Math.floor(this.row)].join(',');
+        return [Math.floor(this.zoom), Math.floor(this.column), Math.floor(this.row)].join('/');
     }
     
     public copy():Coordinate
@@ -43,9 +49,11 @@ export class Coordinate
     public container():Coordinate
     {
         // using floor here (not parseInt, ~~) because we want -0.56 --> -1
-        return new Coordinate(Math.floor(this.row), 
-                              Math.floor(this.column), 
-                              Math.floor(this.zoom));
+        var coord:Coordinate = this.zoomTo(Math.floor(this.zoom));
+        
+        return new Coordinate(Math.floor(coord.row), 
+                              Math.floor(coord.column), 
+                              coord.zoom);
     }
     
     public zoomTo(destination:number):Coordinate

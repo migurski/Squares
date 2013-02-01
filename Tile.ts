@@ -13,6 +13,11 @@ export class Tile
         this.coord = coordinate;
     }
     
+    public toString(map:Map.Map):string
+    {
+        return [this.coord.toString(), this.left(map), this.top(map)].join(' ');
+    }
+    
    /**
     * Return CSS left property value for a tile.
     *
@@ -20,10 +25,15 @@ export class Tile
     */
     public left(map:Map.Map):string
     { 
+        var point = map.coordinatePoint(this.coord.container());
+        return Math.round(point.x) + 'px'; 
+    
+        /*
         var scale = Math.pow(2, map.coord.zoom - this.coord.zoom),
             power = Math.pow(2, this.coord.zoom - map.roundCoord().zoom),
             centerCol = map.roundCoord().column * power;
-        return Math.round(map.center.x + (this.coord.column - centerCol) * map.tilesize.x * scale) + 'px'; 
+        return Math.round(map.center.x + (this.coord.column - centerCol) * Map.TileSize * scale) + 'px'; 
+        */
     }
 
    /**
@@ -33,10 +43,15 @@ export class Tile
     */
     public top(map:Map.Map):string
     { 
+        var point = map.coordinatePoint(this.coord.container());
+        return Math.round(point.y) + 'px'; 
+    
+        /*
         var scale = Math.pow(2, map.coord.zoom - this.coord.zoom),
             power = Math.pow(2, this.coord.zoom - map.roundCoord().zoom),
             centerRow = map.roundCoord().row * power;
-        return Math.round(map.center.y + (this.coord.row - centerRow) * map.tilesize.y * scale) + 'px'; 
+        return Math.round(map.center.y + (this.coord.row - centerRow) * Map.TileSize * scale) + 'px'; 
+        */
     }
 
    /**
@@ -47,7 +62,7 @@ export class Tile
     public width(map:Map.Map):string
     {
         var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * map.tilesize.x)+'px'; 
+        return Math.ceil(scale * Map.TileSize)+'px'; 
     }
 
    /**
@@ -58,7 +73,7 @@ export class Tile
     public height(map:Map.Map):string
     { 
         var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * map.tilesize.y)+'px'; 
+        return Math.ceil(scale * Map.TileSize)+'px'; 
     }          
     
    /**
@@ -70,12 +85,12 @@ export class Tile
     {
         var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
         // adjust to nearest whole pixel scale (thx @tmcw)
-        if (scale * map.tilesize.x % 1) {
-            scale += (1 - scale * map.tilesize.x % 1) / map.tilesize.x;
+        if (scale * Map.TileSize % 1) {
+            scale += (1 - scale * Map.TileSize % 1) / Map.TileSize;
         }                
         var zoomedCoord = map.roundCoord().zoomBy(this.coord.zoom - map.roundCoord().zoom),
-            x = Math.round(map.center.x + (this.coord.column - zoomedCoord.column) * map.tilesize.x * scale),
-            y = Math.round(map.center.y + (this.coord.row - zoomedCoord.row) * map.tilesize.y * scale);
-        return matrixString(scale, x, y, map.tilesize.x/2.0, map.tilesize.y/2.0);
+            x = Math.round(map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale),
+            y = Math.round(map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
+        return matrixString(scale, x, y, Map.TileSize/2.0, Map.TileSize/2.0);
     }
 }
