@@ -1,3 +1,17 @@
+About the TypeScript Thing
+--------------------------
+
+This branch of D3 Map is an attempt to tie [D3](http://d3js.org) to
+Microsoft’s [TypeScript](http://www.typescriptlang.org) to see if they can
+play well together. I’ve only just learned half of this stuff earlier today,
+but I’m really enjoying the contrast between the two environments.
+
+`new.html` is the place to check the output, `Grid.bro.js` is the compiled
+code run through [browserify](http://browserify.org).
+
+Tom Carden’s Original Notes
+---------------------------
+
 An exercise in learning D3 for DOM manipulation and transitions. Still just an engine demo. Needs more features to be a full map library. Consider this my (@RandomEtc) hat in the ring for what comes after Modest Maps JS and Polymaps.
 
 Features:
