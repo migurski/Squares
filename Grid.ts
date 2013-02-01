@@ -51,24 +51,23 @@ class Grid
 
         d3.select(window)
             .on('mousemove.map', this.getOnMousemove(start_mouse))
-            .on('mouseup.map', this.getOnMouseup(start_mouse))
+            .on('mouseup.map', this.getOnMouseup())
 
         d3.event.preventDefault();
         d3.event.stopPropagation();                        
     }
     
-    private getOnMousemove(prev:Core.Point):()=>void
+    private getOnMousemove(start:Core.Point):()=>void
     {
-        var grid = this;
+        var grid = this,
+            prev = start;
     
         return function()
         {
             var curr = new Core.Point(d3.event.pageX, d3.event.pageY),
-                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y),
-                new_center = new Core.Point(grid.map.center.x - diff.x, grid.map.center.y - diff.y),
-                next_coord = grid.map.pointCoordinate(new_center);
-            
-            grid.map.coord = next_coord;
+                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);            
+
+            grid.map.panBy(diff);
             grid.redraw();
             // d3.timer(redraw);
             
@@ -76,7 +75,7 @@ class Grid
         }
     }
     
-    private getOnMouseup(start:Core.Point):()=>void
+    private getOnMouseup():()=>void
     {
         var grid = this;
     

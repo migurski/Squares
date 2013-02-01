@@ -24,6 +24,12 @@ export class Map
         this.center = new Core.Point(size.x/2, size.y/2);
     }
     
+    public panBy(diff:Core.Point):void
+    {
+        var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
+        this.coord = this.pointCoordinate(new_center);
+    }
+    
     public coordinatePoint(coord:Core.Coordinate):Core.Point
     {
         var pixel_center = this.coord.zoomBy(TileExp),
@@ -36,11 +42,9 @@ export class Map
     
     public pointCoordinate(point:Core.Point):Core.Coordinate
     {
-        var round_coord = this.roundCoord(),
-            zoom_diff = round_coord.zoom - this.coord.zoom,
-            pixel_center = this.coord.zoomBy(TileExp + zoom_diff),
-            x = point.x - this.center.x,
+        var x = point.x - this.center.x,
             y = point.y - this.center.y,
+            pixel_center = this.coord.zoomBy(TileExp),
             pixel_coord = pixel_center.right(x).down(y);
         
         return pixel_coord.zoomTo(this.coord.zoom);
