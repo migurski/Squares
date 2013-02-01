@@ -1,9 +1,6 @@
 import Core = module('Core');
 import Map = module('Map');
 
-// Defined in util.js
-declare var matrixString:Function
-
 export class Tile
 {
     public coord:Core.Coordinate;
@@ -91,13 +88,52 @@ export class Tile
     public transform():string
     {
         var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
+
         // adjust to nearest whole pixel scale (thx @tmcw)
-        if (scale * Map.TileSize % 1) {
+        if(scale * Map.TileSize % 1) {
             scale += (1 - scale * Map.TileSize % 1) / Map.TileSize;
         }                
+
         var zoomedCoord = this.map.roundCoord().zoomBy(this.coord.zoom - this.map.roundCoord().zoom),
             x = Math.round(this.map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale),
             y = Math.round(this.map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
-        return matrixString(scale, x, y, Map.TileSize/2.0, Map.TileSize/2.0);
+
+        return matrix_string(scale, x, y, Map.TileSize/2.0, Map.TileSize/2.0);
     }
+}
+
+export var transform_property:string = null;
+
+if('transform' in document.documentElement.style) {
+    transform_property = 'transform';
+
+} else if('-webkit-transform' in document.documentElement.style) {
+    transform_property = '-webkit-transform';
+
+} else if('-o-transform' in document.documentElement.style) {
+    transform_property = '-o-transform';
+
+} else if('-moz-transform' in document.documentElement.style) {
+    transform_property = '-moz-transform';
+
+} else if('-ms-transform' in document.documentElement.style) {
+    transform_property = '-ms-transform';
+}
+
+private matrix_string(scale:number, x:number, y:number, cx:number, cy:number):string
+{
+    if('WebKitCSSMatrix' in window && ('m11' in new window['WebKitCSSMatrix']()))
+    {
+        scale = scale || 1;
+        return 'translate3d(' + [x.toFixed(0), y.toFixed(0), '0px'].join('px,') + ') scale3d(' + [scale.toFixed(8), scale.toFixed(8), '1'].join(',') + ')';
+    }
+
+    var unit = (transform_property == 'MozTransform') ? 'px' : '';
+
+    return 'matrix(' +
+        [(scale || '1'), 0, 0,
+        (scale || '1'),
+        (x + ((cx * scale) - cx)) + unit,
+        (y + ((cy * scale) - cy)) + unit
+        ].join(',') + ')';
 }

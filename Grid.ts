@@ -42,19 +42,26 @@ class Grid
             .append('img')
             .attr('src', function(tile) { return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg' });
         
-        this.selection.selectAll('img')
-            .style('left', Grid.tile_left)
-            .style('top', Grid.tile_top)
-            .style('width', Grid.tile_width)
-            .style('height', Grid.tile_height);
-            
+        if(Tile.transform_property) {
+            // Use CSS transforms if available.
+            this.selection.selectAll('img')
+                .style(Tile.transform_property, Grid.tile_xform);
+
+        } else {
+            this.selection.selectAll('img')
+                .style('left', Grid.tile_left)
+                .style('top', Grid.tile_top)
+                .style('width', Grid.tile_width)
+                .style('height', Grid.tile_height);
+        }
     }
     
-    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()  }
-    public static tile_left  (tile:Tile.Tile):string { return tile.left()   }
-    public static tile_top   (tile:Tile.Tile):string { return tile.top()    }
-    public static tile_width (tile:Tile.Tile):string { return tile.width()  }
-    public static tile_height(tile:Tile.Tile):string { return tile.height() }
+    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
+    public static tile_left  (tile:Tile.Tile):string { return tile.left()      }
+    public static tile_top   (tile:Tile.Tile):string { return tile.top()       }
+    public static tile_width (tile:Tile.Tile):string { return tile.width()     }
+    public static tile_height(tile:Tile.Tile):string { return tile.height()    }
+    public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
     
     public onMousedown():void
     {
