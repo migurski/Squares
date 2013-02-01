@@ -71,7 +71,7 @@ export class Map
         for(var i = tl.row; i <= br.row; i++) {
             for(var j = tl.column; j <= br.column; j++) {
                 var coord = new Core.Coordinate(i, j, round_coord.zoom);
-                tiles.push(new Tile.Tile(coord));
+                tiles.push(new Tile.Tile(coord, this));
             }
         }
         

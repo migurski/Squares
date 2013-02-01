@@ -36,11 +36,6 @@ export class Coordinate
                    + this.zoom.toFixed(3) + ")";
     }
     
-    public toKey():string
-    {
-        return [Math.floor(this.zoom), Math.floor(this.column), Math.floor(this.row)].join('/');
-    }
-    
     public copy():Coordinate
     {
         return new Coordinate(this.row, this.column, this.zoom);

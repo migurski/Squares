@@ -7,15 +7,22 @@ declare var matrixString:Function
 export class Tile
 {
     public coord:Core.Coordinate;
+    public map:Map.Map;
     
-    constructor(coordinate:Core.Coordinate)
+    constructor(coordinate:Core.Coordinate, map:Map.Map)
     {
         this.coord = coordinate;
+        this.map = map;
     }
     
-    public toString(map:Map.Map):string
+    public toString():string
     {
-        return [this.coord.toString(), this.left(map), this.top(map)].join(' ');
+        return [this.coord.toString(), this.left(), this.top()].join(' ');
+    }
+    
+    public toKey():string
+    {
+        return [Math.floor(this.coord.zoom), Math.floor(this.coord.column), Math.floor(this.coord.row)].join('/');
     }
     
    /**
@@ -23,9 +30,9 @@ export class Tile
     *
     * Remove Math.round() for greater accuracy but visible seams
     */
-    public left(map:Map.Map):string
+    public left():string
     { 
-        var point = map.coordinatePoint(this.coord.container());
+        var point = this.map.coordinatePoint(this.coord.container());
         return Math.round(point.x) + 'px'; 
     
         /*
@@ -41,9 +48,9 @@ export class Tile
     *
     * Remove Math.round() for greater accuracy but visible seams
     */
-    public top(map:Map.Map):string
+    public top():string
     { 
-        var point = map.coordinatePoint(this.coord.container());
+        var point = this.map.coordinatePoint(this.coord.container());
         return Math.round(point.y) + 'px'; 
     
         /*
@@ -59,9 +66,9 @@ export class Tile
     *
     * Remove Math.ceil() for greater accuracy but visible seams
     */
-    public width(map:Map.Map):string
+    public width():string
     {
-        var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
         return Math.ceil(scale * Map.TileSize)+'px'; 
     }
 
@@ -70,9 +77,9 @@ export class Tile
     *
     * Remove Math.ceil() for greater accuracy but visible seams
     */
-    public height(map:Map.Map):string
+    public height():string
     { 
-        var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
         return Math.ceil(scale * Map.TileSize)+'px'; 
     }          
     
@@ -81,16 +88,16 @@ export class Tile
     *
     * For 3D webkit mode
     */
-    public transform(map:Map.Map):string
+    public transform():string
     {
-        var scale = Math.pow(2, map.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
         // adjust to nearest whole pixel scale (thx @tmcw)
         if (scale * Map.TileSize % 1) {
             scale += (1 - scale * Map.TileSize % 1) / Map.TileSize;
         }                
-        var zoomedCoord = map.roundCoord().zoomBy(this.coord.zoom - map.roundCoord().zoom),
-            x = Math.round(map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale),
-            y = Math.round(map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
+        var zoomedCoord = this.map.roundCoord().zoomBy(this.coord.zoom - this.map.roundCoord().zoom),
+            x = Math.round(this.map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale),
+            y = Math.round(this.map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
         return matrixString(scale, x, y, Map.TileSize/2.0, Map.TileSize/2.0);
     }
 }

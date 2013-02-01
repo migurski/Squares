@@ -39,21 +39,7 @@
     <!--
     
         var map = makeMap('map');
-        var tiles = map.map.visible_tiles();
-        
-        for(var i in tiles)
-        {
-            console.log(tiles[i].left(map.map), tiles[i].coord.toKey().replace(',', '/'));
-            
-            var img = new Image();
-            img.src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tiles[i].coord.toKey().replace(',', '/') + '.jpg';
-            img.style.left = tiles[i].left(map.map);
-            img.style.width = tiles[i].width(map.map);
-            img.style.top = tiles[i].top(map.map);
-            img.style.height = tiles[i].height(map.map);
-            
-            map.parent.appendChild(img);
-        }
+        map.redraw();
     
     //-->
     </script>
