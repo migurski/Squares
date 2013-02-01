@@ -1,5 +1,5 @@
 interface ID3Selectors {
-    select: (selector: string) => ID3Selection;
+    select: (selector: any) => ID3Selection;
     selectAll: (selector: string) => ID3Selection;
 }
 
@@ -55,6 +55,9 @@ interface ID3Base extends ID3Selectors {
     layout: ID3Layout;
     svg: ID3Svg;
     random: ID3Random;
+    
+    // Added d3.event tree.
+    event: ID3Event;
 }
 
 interface ID3Selection extends ID3Selectors {
@@ -104,6 +107,9 @@ interface ID3Selection extends ID3Selectors {
     };
     
     call(callback: (selection: ID3Selection) => void): ID3Selection;   
+    
+    // Added event handling.
+    on: (event: string, callback: () => void) => ID3Selection;
 }
 
 interface ID3EnterSelection {
@@ -271,6 +277,16 @@ interface ID3SvgAxis {
 
 interface ID3Random {
     normal(mean?: number, deviation?: number): () => number;
+}
+
+// Added parts of d3.event tree.
+
+interface ID3Event
+{
+    pageX:number;
+    pageY:number;
+    preventDefault: () => void;
+    stopPropagation: () => void;
 }
 
 declare var d3: ID3Base;
