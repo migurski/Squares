@@ -6,16 +6,16 @@ import Map = module('Map');
 class Grid
 {
     private selection:ID3Selection;
-    private parent:Element;
+    private parent:HTMLElement;
     private map:Map.Map;
     
     // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
     private d3_behavior_zoom_div:Node;
     
-    constructor(id:string)
+    constructor(parent:HTMLElement)
     {
-        this.selection = d3.select('#'+id);
-        this.parent = document.getElementById(id);
+        this.selection = d3.select('#'+parent.id);
+        this.parent = parent;
         
         var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
         
@@ -151,9 +151,9 @@ class Grid
     }          
 }
 
-function makeMap(id:string):Grid
+function makeMap(parent:HTMLElement):Grid
 {
-    return new Grid(id);
+    return new Grid(parent);
 }
 
 window['makeMap'] = makeMap;

@@ -71,6 +71,9 @@ export class Map
         return pixel_coord.zoomTo(this.coord.zoom);
     }
     
+   /**
+    * Retrieve a list of Tile objects covering the current visible area.
+    */
     public visible_tiles():Tile.Tile[]
     {
         //
@@ -80,6 +83,7 @@ export class Map
             tl = this.pointCoordinate(new Core.Point(0, 0)),
             br = this.pointCoordinate(new Core.Point(this.center.x*2, this.center.y*2));
         
+        // convert to zoom level we'll use for tiles.
         tl = tl.zoomTo(round_coord.zoom).container();
         br = br.zoomTo(round_coord.zoom).container();
         
