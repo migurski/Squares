@@ -56,8 +56,9 @@ interface ID3Base extends ID3Selectors {
     svg: ID3Svg;
     random: ID3Random;
     
-    // Added d3.event tree.
+    // Added d3 event support.
     event: ID3Event;
+    mouse: (container: any) => number[];
 }
 
 interface ID3Selection extends ID3Selectors {
@@ -110,6 +111,9 @@ interface ID3Selection extends ID3Selectors {
     
     // Added event handling.
     on: (event: string, callback: () => void) => ID3Selection;
+    
+    // Added node()
+    node: () => Node;
 }
 
 interface ID3EnterSelection {
@@ -281,12 +285,12 @@ interface ID3Random {
 
 // Added parts of d3.event tree.
 
-interface ID3Event
+interface ID3Event extends Event
 {
     pageX:number;
     pageY:number;
-    preventDefault: () => void;
-    stopPropagation: () => void;
+    wheelDelta:number;
+    detail:number;
 }
 
 declare var d3: ID3Base;

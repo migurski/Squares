@@ -9,6 +9,9 @@ class Grid
     private parent:Element;
     private map:Map.Map;
     
+    // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
+    private d3_behavior_zoom_div:Node;
+    
     constructor(id:string)
     {
         this.selection = d3.select('#'+id);
@@ -21,7 +24,10 @@ class Grid
         
         var grid = this;
         
-        this.selection.on('mousedown.map', function() { grid.onMousedown() })
+        this.selection
+            .on('mousedown.map', function() { grid.onMousedown() })
+            .on('mousewheel.map', function() { grid.onMousewheel() })
+            .on('DOMMouseScroll.map', function() { grid.onMousewheel() });
     }
     
     public redraw():void
@@ -43,6 +49,12 @@ class Grid
             .style('height', Grid.tile_height);
             
     }
+    
+    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()  }
+    public static tile_left  (tile:Tile.Tile):string { return tile.left()   }
+    public static tile_top   (tile:Tile.Tile):string { return tile.top()    }
+    public static tile_width (tile:Tile.Tile):string { return tile.width()  }
+    public static tile_height(tile:Tile.Tile):string { return tile.height() }
     
     public onMousedown():void
     {
@@ -87,11 +99,61 @@ class Grid
         }
     }
     
-    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()  }
-    public static tile_left  (tile:Tile.Tile):string { return tile.left()   }
-    public static tile_top   (tile:Tile.Tile):string { return tile.top()    }
-    public static tile_width (tile:Tile.Tile):string { return tile.width()  }
-    public static tile_height(tile:Tile.Tile):string { return tile.height() }
+    public onMousewheel():void
+    {
+        // 18 = max zoom, 0 = min zoom
+        var delta = Math.min(18 - this.map.coord.zoom, Math.max(0 - this.map.coord.zoom, this.d3_behavior_zoom_delta()));
+
+        if(delta != 0)
+        {
+            var mouse = d3.mouse(this.parent),
+                anchor = new Core.Point(mouse[0], mouse[1]);
+            
+            this.map.zoomByAbout(delta, anchor);
+            this.redraw();
+            // d3.timer(redraw);
+        }
+
+        d3.event.preventDefault();
+        d3.event.stopPropagation();                        
+    }
+
+    private d3_behavior_zoom_delta():number
+    {
+        //
+        // mousewheel events are totally broken!
+        // https://bugs.webkit.org/show_bug.cgi?id=40441
+        // not only that, but Chrome and Safari differ in re. to acceleration!
+        //
+        if(!this.d3_behavior_zoom_div)
+        {
+            this.d3_behavior_zoom_div = d3
+                .select("body")
+                .append("div")
+                  .style("visibility", "hidden")
+                  .style("top", 0)
+                  .style("height", 0)
+                  .style("width", 0)
+                  .style("overflow-y", "scroll")
+                  .append("div")
+                    .style("height", "2000px")
+                    .node()
+                    .parentNode;
+        }
+        
+        var e = d3.event, delta;
+
+        try {
+            this.d3_behavior_zoom_div['scrollTop'] = 250;
+            this.d3_behavior_zoom_div.dispatchEvent(e);
+            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
+
+        } catch (error) {
+            delta = e.wheelDelta || (-e.detail * 5);
+        }
+        
+        return delta * .005;
+    }          
 }
 
 function makeMap(id:string):Grid

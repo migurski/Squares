@@ -24,10 +24,31 @@ export class Map
         this.center = new Core.Point(size.x/2, size.y/2);
     }
     
+   /**
+    * Pan by a given x and y distance.
+    */
     public panBy(diff:Core.Point):void
     {
         var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
         this.coord = this.pointCoordinate(new_center);
+    }
+    
+   /**
+    * Zoom around a given anchor point by a specified amount.
+    */
+    public zoomByAbout(delta:number, anchor:Core.Point):void
+    {
+        var offset = new Core.Point(this.center.x*2 - anchor.x, this.center.y*2 - anchor.y),
+            coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
+        
+        // center the map on the wheeled-over coordinate
+        this.coord = coord;
+        
+        // zoom the center coordinate
+        this.coord = this.coord.zoomBy(delta);
+        
+        // move the wheeled-over coordinate back to where it was
+        this.coord = this.pointCoordinate(offset);
     }
     
     public coordinatePoint(coord:Core.Coordinate):Core.Point
