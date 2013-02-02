@@ -1,6 +1,5 @@
 import Core = module('Core');
 import Tile = module('Tile');
-import Queue = module('Queue');
 
 export var TileSize:number = 256;
 export var TileExp:number = Math.log(TileSize) / Math.log(2);

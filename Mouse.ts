@@ -1,22 +1,16 @@
 ///<reference path="d3types.ts" />
+import Base = module('Base');
 import Core = module('Core');
 import Grid = module('Grid');
 
-export interface Map
-{
-    grid:Grid.Grid;
-    parent:HTMLElement;
-    redraw():void;
-}
-
 export class Control
 {
-    private map:Map;
+    private map:Base.Map;
     
     // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
     private d3_behavior_zoom_div:Node;
     
-    constructor(map:Map)
+    constructor(map:Base.Map)
     {
         this.map = map;
     }
