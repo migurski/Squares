@@ -433,14 +433,68 @@ process.binding = function (name) {
 });
 
 require.define("/Queue.js",function(require,module,exports,__dirname,__filename,process,global){
+var Request = (function () {
+    function Request(image, src) {
+        this.id = image.id;
+        this.image = image;
+        this.src = src;
+    }
+    Request.prototype.deny = function () {
+        this.image = null;
+    };
+    Request.prototype.load = function () {
+        if(this.image && this.image.parentNode) {
+            d3.select(this.image).attr('src', this.src);
+            return true;
+        }
+        return false;
+    };
+    return Request;
+})();
 var Queue = (function () {
-    function Queue() {
+    function Queue(loaded_tiles) {
+        this.queue = [];
+        this.queue_by_id = {
+        };
         this.open_request_count = 0;
+        this.requests_by_id = {
+        };
+        this.loaded_tiles = loaded_tiles;
     }
     Queue.prototype.append = function (image, src) {
-        d3.select(image).attr('src', src);
+        if(src in this.loaded_tiles) {
+            d3.select(image).attr('src', src);
+        } else {
+            var request = new Request(image, src);
+            this.queue.push(request);
+            this.queue_by_id[request.id] = request;
+        }
     };
-    Queue.prototype.remove = function (image) {
+    Queue.prototype.cancel = function (image) {
+        this.close(image);
+        var request = this.queue_by_id[image.id];
+        if(request) {
+            request.deny();
+            delete this.queue_by_id[image.id];
+        }
+    };
+    Queue.prototype.close = function (image) {
+        var request = this.requests_by_id[image.id];
+        if(request) {
+            request.deny();
+            delete this.requests_by_id[image.id];
+            this.open_request_count--;
+        }
+    };
+    Queue.prototype.process = function () {
+        while(this.open_request_count < 8 && this.queue.length > 0) {
+            var request = this.queue.shift(), loading = request.load();
+            if(loading) {
+                this.requests_by_id[request.id] = request;
+                this.open_request_count++;
+            }
+            delete this.queue_by_id[request.id];
+        }
     };
     return Queue;
 })();
@@ -651,13 +705,16 @@ var Grid = require("./Grid")
 var Map = (function () {
     function Map(parent) {
         this.selection = d3.select('#' + parent.id);
+        this.loaded_tiles = {
+        };
         this.parent = parent;
         var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
         this.grid = new Grid.Grid(center);
         this.grid.coord = new Core.Coordinate(0.5, 0.5, 0).zoomTo(3.4);
-        this.queue = new Queue.Queue();
+        this.queue = new Queue.Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
+        this.tile_onloaded = this.getTileOnloaded();
         var map = this;
         this.selection.on('mousedown.map', function () {
             map.onMousedown();
@@ -667,15 +724,19 @@ var Map = (function () {
             map.onMousewheel();
         });
     }
+    Map.prototype.zoom = function () {
+        return this.grid.coord.zoom;
+    };
     Map.prototype.redraw = function () {
         var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img').data(tiles, Map.tile_key);
         join.exit().each(this.tile_dequeuer).remove();
-        join.enter().append('img').each(this.tile_queuer);
+        join.enter().append('img').attr('id', Map.tile_key).on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
             this.selection.selectAll('img').style(Tile.transform_property, Map.tile_xform);
         } else {
             this.selection.selectAll('img').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
         }
+        this.queue.process();
     };
     Map.tile_key = function tile_key(tile) {
         return tile.toKey();
@@ -695,6 +756,14 @@ var Map = (function () {
     Map.tile_xform = function tile_xform(tile) {
         return tile.transform();
     };
+    Map.prototype.getTileOnloaded = function () {
+        var map = this;
+        return function (tile, i) {
+            map.loaded_tiles[this.src] = Date.now();
+            map.queue.close(this);
+            map.redraw();
+        };
+    };
     Map.prototype.getTileQueuer = function () {
         var queue = this.queue;
         return function (tile, i) {
@@ -705,7 +774,7 @@ var Map = (function () {
     Map.prototype.getTileDequeuer = function () {
         var queue = this.queue;
         return function (tile, i) {
-            queue.remove(this);
+            queue.cancel(this);
         };
     };
     Map.prototype.onMousedown = function () {

@@ -8,6 +8,7 @@ class Map
 {
     private queue:Queue.Queue;
     private selection:ID3Selection;
+    private loaded_tiles:Object;
     private parent:HTMLElement;
     private grid:Grid.Grid;
     
@@ -17,10 +18,12 @@ class Map
     // functions called for each image tile as it enters/exits the map.
     private tile_queuer:(tile:Tile.Tile, index:number)=>void;
     private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
+    private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
     
     constructor(parent:HTMLElement)
     {
         this.selection = d3.select('#'+parent.id);
+        this.loaded_tiles = {};
         this.parent = parent;
         
         var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
@@ -28,9 +31,10 @@ class Map
         this.grid = new Grid.Grid(center);
         this.grid.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
         
-        this.queue = new Queue.Queue();
+        this.queue = new Queue.Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
+        this.tile_onloaded = this.getTileOnloaded();
         
         var map = this;
         
@@ -38,6 +42,11 @@ class Map
             .on('mousedown.map', function() { map.onMousedown() })
             .on('mousewheel.map', function() { map.onMousewheel() })
             .on('DOMMouseScroll.map', function() { map.onMousewheel() });
+    }
+    
+    public zoom():number
+    {
+        return this.grid.coord.zoom;
     }
     
     public redraw():void
@@ -51,6 +60,8 @@ class Map
 
         join.enter()
             .append('img')
+            .attr('id', Map.tile_key)
+            .on('load', this.tile_onloaded)
             .each(this.tile_queuer);
         
         if(Tile.transform_property) {
@@ -65,6 +76,8 @@ class Map
                 .style('width', Map.tile_width)
                 .style('height', Map.tile_height);
         }
+        
+        this.queue.process();
     }
     
     public static tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
@@ -75,9 +88,31 @@ class Map
     public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
     
    /**
+    * Return a function usable in d3...on('load', ...).
+    */
+    private getTileOnloaded():(tile:Tile.Tile, i:number)=>void
+    {
+        var map = this;
+        
+       /**
+        * The specified listener is invoked in the same manner as other
+        * operator functions, being passed the current datum `tile` and
+        * index `i`, with the `this` context as the current DOM element.
+        *
+        * https://github.com/mbostock/d3/wiki/Selections#wiki-on
+        */
+        return function(tile:Tile.Tile, i:number)
+        {
+            map.loaded_tiles[this.src] = Date.now();
+            map.queue.close(this);
+            map.redraw();
+        }
+    }
+    
+   /**
     * Return a function usable in d3.select().each().
     */
-    private getTileQueuer():(tile:Tile.Tile, index:number)=>void
+    private getTileQueuer():(tile:Tile.Tile, i:number)=>void
     {
         var queue = this.queue;
         
@@ -98,7 +133,7 @@ class Map
    /**
     * Return a function usable in d3.select().each().
     */
-    private getTileDequeuer():(tile:Tile.Tile, index:number)=>void
+    private getTileDequeuer():(tile:Tile.Tile, i:number)=>void
     {
         var queue = this.queue;
         
@@ -111,7 +146,7 @@ class Map
         */
         return function(tile:Tile.Tile, i:number)
         {
-            queue.remove(this);
+            queue.cancel(this);
         }
     }
     

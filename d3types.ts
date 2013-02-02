@@ -110,7 +110,7 @@ interface ID3Selection extends ID3Selectors {
     call(callback: (selection: ID3Selection) => void): ID3Selection;   
     
     // Added event handling.
-    on: (event: string, callback: () => void) => ID3Selection;
+    on: (event: string, callback: (data: any, index: number) => void) => ID3Selection;
     
     // Added node()
     node: () => Node;
