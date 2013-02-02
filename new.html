@@ -20,7 +20,8 @@
             padding: 0;
         }
         
-        #map img
+        #map img,
+        #map div
         {
             display: block;
             position: absolute;
@@ -38,9 +39,14 @@
     <script type="application/javascript">
     <!--
     
-        var map = makeMap(document.getElementById('map'),
-                          'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
-                          1582, 656, 12);
+        /*
+        var map = makeImgMap(document.getElementById('map'),
+                             'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
+                             1582, 656, 12);
+        */
+
+        var map = makeDivMap(document.getElementById('map'), 1582, 656, 12);
+
         map.redraw();
     
     //-->
