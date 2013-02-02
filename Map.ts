@@ -12,6 +12,10 @@ class Map
     // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
     private d3_behavior_zoom_div:Node;
     
+    // functions called for each image tile as it enters/exits the map.
+    private tile_queuer:(tile:Tile.Tile, index:number)=>void;
+    private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
+    
     constructor(parent:HTMLElement)
     {
         this.selection = d3.select('#'+parent.id);
@@ -21,6 +25,9 @@ class Map
         
         this.grid = new Grid.Grid(center);
         this.grid.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
+        
+        this.tile_queuer = this.getTileQueuer();
+        this.tile_dequeuer = this.getTileDequeuer();
         
         var map = this;
         
@@ -36,11 +43,12 @@ class Map
             join = this.selection.selectAll('img').data(tiles, Map.tile_key);
         
         join.exit()
+            .each(this.tile_dequeuer)
             .remove();
 
         join.enter()
             .append('img')
-            .attr('src', function(tile) { return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg' });
+            .each(this.tile_queuer);
         
         if(Tile.transform_property) {
             // Use CSS transforms if available.
@@ -62,6 +70,45 @@ class Map
     public static tile_width (tile:Tile.Tile):string { return tile.width()     }
     public static tile_height(tile:Tile.Tile):string { return tile.height()    }
     public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
+    
+   /**
+    * Return a function usable in d3.select().each().
+    *
+    * Invokes the specified function for each element in the current
+    * selection, passing in the current datum `d` and index `i`, with
+    * the `this` context of the current DOM element.
+    *
+    * https://github.com/mbostock/d3/wiki/Selections#wiki-each
+    */
+    private getTileQueuer():(tile:Tile.Tile, index:number)=>void
+    {
+        var map = this;
+        
+        return function(tile:Tile.Tile, index:number)
+        {
+            d3.select(this)
+              .attr('src', 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg');
+        }
+    }
+    
+   /**
+    * Return a function usable in d3.select().each().
+    *
+    * Invokes the specified function for each element in the current
+    * selection, passing in the current datum `d` and index `i`, with
+    * the `this` context of the current DOM element.
+    *
+    * https://github.com/mbostock/d3/wiki/Selections#wiki-each
+    */
+    private getTileDequeuer():(tile:Tile.Tile, index:number)=>void
+    {
+        var map = this;
+        
+        return function(tile:Tile.Tile, index:number)
+        {
+            console.log('Removing', tile.toKey());
+        }
+    }
     
     public onMousedown():void
     {

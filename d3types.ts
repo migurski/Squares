@@ -114,6 +114,9 @@ interface ID3Selection extends ID3Selectors {
     
     // Added node()
     node: () => Node;
+    
+    //
+    each: (callback: (element: any, index: number) => void) => ID3Selection;
 }
 
 interface ID3EnterSelection {
