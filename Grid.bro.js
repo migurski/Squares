@@ -440,19 +440,19 @@ var Grid = require("./Grid")
 var Map = (function () {
     function Map(parent, template, row, column, zoom) {
         this.mouse_ctrl = new Mouse.Control(this);
-        this.selection = d3.select('#' + parent.id);
+        this.selection = d3.select(parent);
         this.loaded_tiles = {
         };
         this.template = template;
         this.parent = parent;
-        var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
-        this.grid = new Grid.Grid(center);
+        var size = Mouse.element_size(this.parent);
+        this.grid = new Grid.Grid(size.x, size.y);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
-        var mouse_ctrl = this.mouse_ctrl;
+        var mouse_ctrl = this.mouse_ctrl, map = this;
         this.selection.on('mousedown.map', function () {
             mouse_ctrl.onMousedown();
         }).on('mousewheel.map', function () {
@@ -460,18 +460,26 @@ var Map = (function () {
         }).on('DOMMouseScroll.map', function () {
             mouse_ctrl.onMousewheel();
         });
+        d3.select(window).on('resize.map', function () {
+            map.update_gridsize();
+        });
     }
+    Map.prototype.update_gridsize = function () {
+        var size = Mouse.element_size(this.parent);
+        this.grid.resize(size.x, size.y);
+        this.redraw();
+    };
     Map.prototype.zoom = function () {
         return this.grid.coord.zoom;
     };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img').data(tiles, Map.tile_key);
+        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
         join.exit().each(this.tile_dequeuer).remove();
-        join.enter().append('img').attr('id', Map.tile_key).on('load', this.tile_onloaded).each(this.tile_queuer);
+        join.enter().append('img').attr('class', 'tile').attr('id', Map.tile_key).on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
-            this.selection.selectAll('img').style(Tile.transform_property, Map.tile_xform);
+            this.selection.selectAll('img.tile').style(Tile.transform_property, Map.tile_xform);
         } else {
-            this.selection.selectAll('img').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
+            this.selection.selectAll('img.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
         }
         this.queue.process();
     };
@@ -591,6 +599,13 @@ var Request = (function () {
 require.define("/Mouse.js",function(require,module,exports,__dirname,__filename,process,global){
 var Core = require("./Core")
 
+function element_size(element) {
+    if(element == document.body) {
+        return new Core.Point(window.innerWidth, window.innerHeight);
+    }
+    return new Core.Point(element.clientWidth, element.clientHeight);
+}
+exports.element_size = element_size;
 var Control = (function () {
     function Control(map) {
         this.map = map;
@@ -629,13 +644,12 @@ var Control = (function () {
         if(!this.d3_behavior_zoom_div) {
             this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
         }
-        var e = d3.event, delta;
         try  {
             this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(e);
-            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
+            this.d3_behavior_zoom_div.dispatchEvent(d3.event);
+            var delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
         } catch (error) {
-            delta = e.wheelDelta || (-e.detail * 5);
+            var delta = d3.event.wheelDelta || (-d3.event.detail * 5);
         }
         return delta * 0.005;
     };
@@ -798,8 +812,8 @@ var Tile = require("./Tile")
 exports.TileSize = 256;
 exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
 var Grid = (function () {
-    function Grid(center) {
-        this.center = center;
+    function Grid(w, h) {
+        this.resize(w, h);
     }
     Grid.prototype.roundCoord = function () {
         return this.coord.zoomTo(Math.round(this.coord.zoom));
@@ -852,12 +866,12 @@ var Tile = require("./Tile")
 var Map = (function () {
     function Map(parent, row, column, zoom) {
         this.mouse_ctrl = new Mouse.Control(this);
-        this.selection = d3.select('#' + parent.id);
+        this.selection = d3.select(parent);
         this.parent = parent;
-        var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
-        this.grid = new Grid.Grid(center);
+        var size = Mouse.element_size(this.parent);
+        this.grid = new Grid.Grid(size.x, size.y);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
-        var mouse_ctrl = this.mouse_ctrl;
+        var mouse_ctrl = this.mouse_ctrl, map = this;
         this.selection.on('mousedown.map', function () {
             mouse_ctrl.onMousedown();
         }).on('mousewheel.map', function () {
@@ -865,15 +879,23 @@ var Map = (function () {
         }).on('DOMMouseScroll.map', function () {
             mouse_ctrl.onMousewheel();
         });
+        d3.select(window).on('resize.map', function () {
+            map.update_gridsize();
+        });
     }
+    Map.prototype.update_gridsize = function () {
+        var size = Mouse.element_size(this.parent);
+        this.grid.resize(size.x, size.y);
+        this.redraw();
+    };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('div').data(tiles, Map.tile_key);
+        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
         join.exit().remove();
-        join.enter().append('div').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(Map.tile_key).attr('id', Map.tile_key);
+        join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(Map.tile_key).attr('id', Map.tile_key);
         if(false) {
-            this.selection.selectAll('div').style(Tile.transform_property, Map.tile_xform);
+            this.selection.selectAll('div.tile').style(Tile.transform_property, Map.tile_xform);
         } else {
-            this.selection.selectAll('div').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
+            this.selection.selectAll('div.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
         }
     };
     Map.tile_key = function tile_key(tile) {
@@ -902,10 +924,17 @@ exports.Map = Map;
 
 require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
 var Div = require("./Div")
+var sorry_docbody_safari5 = 'Sorry, for the moment I can’t figure out how to make the mousewheel work in Safari 5.0 when the parent element is the document body. Try making your parent element a DIV?';
 function makeImgMap(parent, template, row, column, zoom) {
+    if(parent == document.body) {
+        throw Error(sorry_docbody_safari5);
+    }
     return new Image.Map(parent, template, row, column, zoom);
 }
 function makeDivMap(parent, row, column, zoom) {
+    if(parent == document.body) {
+        throw Error(sorry_docbody_safari5);
+    }
     return new Div.Map(parent, row, column, zoom);
 }
 window['makeImgMap'] = makeImgMap;

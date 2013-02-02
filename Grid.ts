@@ -9,9 +9,9 @@ export class Grid
     public coord:Core.Coordinate;
     public center:Core.Point;
     
-    constructor(center:Core.Point)
+    constructor(w:number, h:number)
     {
-        this.center = center;
+        this.resize(w, h);
     }
     
     public roundCoord():Core.Coordinate

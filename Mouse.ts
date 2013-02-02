@@ -3,6 +3,16 @@ import Base = module('Base');
 import Core = module('Core');
 import Grid = module('Grid');
 
+export function element_size(element:HTMLElement):Core.Point
+{
+    if(element == document.body)
+    {
+        return new Core.Point(window.innerWidth, window.innerHeight);
+    }
+
+    return new Core.Point(element.clientWidth, element.clientHeight);
+}
+
 export class Control
 {
     private map:Base.Map;
@@ -96,15 +106,13 @@ export class Control
                     .parentNode;
         }
         
-        var e = d3.event, delta;
-
         try {
             this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(e);
-            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
+            this.d3_behavior_zoom_div.dispatchEvent(d3.event);
+            var delta:number = 250 - this.d3_behavior_zoom_div['scrollTop'];
 
         } catch (error) {
-            delta = e.wheelDelta || (-e.detail * 5);
+            var delta:number = d3.event.wheelDelta || (-d3.event.detail * 5);
         }
         
         return delta * .005;

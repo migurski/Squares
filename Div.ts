@@ -16,32 +16,42 @@ export class Map implements Base.Map
     constructor(parent:HTMLElement, row:number, column:number, zoom:number)
     {
         this.mouse_ctrl = new Mouse.Control(this);
-        this.selection = d3.select('#'+parent.id);
+        this.selection = d3.select(parent);
         this.parent = parent;
         
-        var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
-        
-        this.grid = new Grid.Grid(center);
+        var size = Mouse.element_size(this.parent);
+        this.grid = new Grid.Grid(size.x, size.y);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         
-        var mouse_ctrl = this.mouse_ctrl;
+        var mouse_ctrl = this.mouse_ctrl,
+            map = this;
         
         this.selection
             .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
             .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
             .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });
+        
+        d3.select(window).on('resize.map', function() { map.update_gridsize() });
+    }
+    
+    private update_gridsize():void
+    {
+        var size = Mouse.element_size(this.parent);
+        this.grid.resize(size.x, size.y);
+        this.redraw();
     }
     
     public redraw():void
     {
         var tiles = this.grid.visible_tiles(),
-            join = this.selection.selectAll('div').data(tiles, Map.tile_key);
+            join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
         
         join.exit()
             .remove();
 
         join.enter()
             .append('div')
+            .attr('class', 'tile')
             .style('border-top', '1px solid pink')
             .style('border-left', '1px solid pink')
             .text(Map.tile_key)
@@ -49,11 +59,11 @@ export class Map implements Base.Map
         
         if(false /*Tile.transform_property*/) {
             // Use CSS transforms if available.
-            this.selection.selectAll('div')
+            this.selection.selectAll('div.tile')
                 .style(Tile.transform_property, Map.tile_xform);
 
         } else {
-            this.selection.selectAll('div')
+            this.selection.selectAll('div.tile')
                 .style('left', Map.tile_left)
                 .style('top', Map.tile_top)
                 .style('width', Map.tile_width)

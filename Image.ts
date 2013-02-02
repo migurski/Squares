@@ -24,14 +24,13 @@ export class Map implements Base.Map
     constructor(parent:HTMLElement, template:string, row:number, column:number, zoom:number)
     {
         this.mouse_ctrl = new Mouse.Control(this);
-        this.selection = d3.select('#'+parent.id);
+        this.selection = d3.select(parent);
         this.loaded_tiles = {};
         this.template = template;
         this.parent = parent;
         
-        var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
-        
-        this.grid = new Grid.Grid(center);
+        var size = Mouse.element_size(this.parent);
+        this.grid = new Grid.Grid(size.x, size.y);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         
         this.queue = new Queue(this.loaded_tiles);
@@ -39,12 +38,22 @@ export class Map implements Base.Map
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
         
-        var mouse_ctrl = this.mouse_ctrl;
+        var mouse_ctrl = this.mouse_ctrl,
+            map = this;
         
         this.selection
             .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
             .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
             .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });
+        
+        d3.select(window).on('resize.map', function() { map.update_gridsize() });
+    }
+    
+    private update_gridsize():void
+    {
+        var size = Mouse.element_size(this.parent);
+        this.grid.resize(size.x, size.y);
+        this.redraw();
     }
     
     public zoom():number
@@ -55,7 +64,7 @@ export class Map implements Base.Map
     public redraw():void
     {
         var tiles = this.grid.visible_tiles(),
-            join = this.selection.selectAll('img').data(tiles, Map.tile_key);
+            join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
         
         join.exit()
             .each(this.tile_dequeuer)
@@ -63,17 +72,18 @@ export class Map implements Base.Map
 
         join.enter()
             .append('img')
+            .attr('class', 'tile')
             .attr('id', Map.tile_key)
             .on('load', this.tile_onloaded)
             .each(this.tile_queuer);
         
         if(Tile.transform_property) {
             // Use CSS transforms if available.
-            this.selection.selectAll('img')
+            this.selection.selectAll('img.tile')
                 .style(Tile.transform_property, Map.tile_xform);
 
         } else {
-            this.selection.selectAll('img')
+            this.selection.selectAll('img.tile')
                 .style('left', Map.tile_left)
                 .style('top', Map.tile_top)
                 .style('width', Map.tile_width)
