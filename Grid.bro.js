@@ -432,6 +432,22 @@ process.binding = function (name) {
 
 });
 
+require.define("/Queue.js",function(require,module,exports,__dirname,__filename,process,global){
+var Queue = (function () {
+    function Queue() {
+        this.open_request_count = 0;
+    }
+    Queue.prototype.append = function (image, src) {
+        d3.select(image).attr('src', src);
+    };
+    Queue.prototype.remove = function (image) {
+    };
+    return Queue;
+})();
+exports.Queue = Queue;
+
+});
+
 require.define("/Core.js",function(require,module,exports,__dirname,__filename,process,global){var Point = (function () {
     function Point(x, y) {
         this.x = x;
@@ -578,6 +594,7 @@ exports.matrix_string = matrix_string;
 
 require.define("/Grid.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
 var Tile = require("./Tile")
+
 exports.TileSize = 256;
 exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
 var Grid = (function () {
@@ -627,76 +644,91 @@ exports.Grid = Grid;
 
 });
 
-require.define("/ActualMap.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Queue = require("./Queue")
+var Core = require("./Core")
 var Tile = require("./Tile")
 var Grid = require("./Grid")
-var ActualMap = (function () {
-    function ActualMap(parent) {
+var Map = (function () {
+    function Map(parent) {
         this.selection = d3.select('#' + parent.id);
         this.parent = parent;
         var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
         this.grid = new Grid.Grid(center);
         this.grid.coord = new Core.Coordinate(0.5, 0.5, 0).zoomTo(3.4);
-        var actual_map = this;
+        this.queue = new Queue.Queue();
+        this.tile_queuer = this.getTileQueuer();
+        this.tile_dequeuer = this.getTileDequeuer();
+        var map = this;
         this.selection.on('mousedown.map', function () {
-            actual_map.onMousedown();
+            map.onMousedown();
         }).on('mousewheel.map', function () {
-            actual_map.onMousewheel();
+            map.onMousewheel();
         }).on('DOMMouseScroll.map', function () {
-            actual_map.onMousewheel();
+            map.onMousewheel();
         });
     }
-    ActualMap.prototype.redraw = function () {
-        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img').data(tiles, ActualMap.tile_key);
-        join.exit().remove();
-        join.enter().append('img').attr('src', function (tile) {
-            return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
-        });
+    Map.prototype.redraw = function () {
+        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img').data(tiles, Map.tile_key);
+        join.exit().each(this.tile_dequeuer).remove();
+        join.enter().append('img').each(this.tile_queuer);
         if(Tile.transform_property) {
-            this.selection.selectAll('img').style(Tile.transform_property, ActualMap.tile_xform);
+            this.selection.selectAll('img').style(Tile.transform_property, Map.tile_xform);
         } else {
-            this.selection.selectAll('img').style('left', ActualMap.tile_left).style('top', ActualMap.tile_top).style('width', ActualMap.tile_width).style('height', ActualMap.tile_height);
+            this.selection.selectAll('img').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
         }
     };
-    ActualMap.tile_key = function tile_key(tile) {
+    Map.tile_key = function tile_key(tile) {
         return tile.toKey();
     };
-    ActualMap.tile_left = function tile_left(tile) {
+    Map.tile_left = function tile_left(tile) {
         return tile.left();
     };
-    ActualMap.tile_top = function tile_top(tile) {
+    Map.tile_top = function tile_top(tile) {
         return tile.top();
     };
-    ActualMap.tile_width = function tile_width(tile) {
+    Map.tile_width = function tile_width(tile) {
         return tile.width();
     };
-    ActualMap.tile_height = function tile_height(tile) {
+    Map.tile_height = function tile_height(tile) {
         return tile.height();
     };
-    ActualMap.tile_xform = function tile_xform(tile) {
+    Map.tile_xform = function tile_xform(tile) {
         return tile.transform();
     };
-    ActualMap.prototype.onMousedown = function () {
-        var actual_map = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
+    Map.prototype.getTileQueuer = function () {
+        var queue = this.queue;
+        return function (tile, i) {
+            var src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
+            queue.append(this, src);
+        };
+    };
+    Map.prototype.getTileDequeuer = function () {
+        var queue = this.queue;
+        return function (tile, i) {
+            queue.remove(this);
+        };
+    };
+    Map.prototype.onMousedown = function () {
+        var map = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
         d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
-            actual_map.onMouseup();
+            map.onMouseup();
         });
         d3.event.preventDefault();
         d3.event.stopPropagation();
     };
-    ActualMap.prototype.onMouseup = function () {
+    Map.prototype.onMouseup = function () {
         d3.select(window).on('mousemove.map', null).on('mouseup.map', null);
     };
-    ActualMap.prototype.getOnMousemove = function (start) {
-        var actual_map = this, prev = start;
+    Map.prototype.getOnMousemove = function (start) {
+        var map = this, prev = start;
         return function () {
             var curr = new Core.Point(d3.event.pageX, d3.event.pageY), diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);
-            actual_map.grid.panBy(diff);
-            actual_map.redraw();
+            map.grid.panBy(diff);
+            map.redraw();
             prev = curr;
         };
     };
-    ActualMap.prototype.onMousewheel = function () {
+    Map.prototype.onMousewheel = function () {
         var delta = Math.min(18 - this.grid.coord.zoom, Math.max(0 - this.grid.coord.zoom, this.d3_behavior_zoom_delta()));
         if(delta != 0) {
             var mouse = d3.mouse(this.parent), anchor = new Core.Point(mouse[0], mouse[1]);
@@ -706,7 +738,7 @@ var ActualMap = (function () {
         d3.event.preventDefault();
         d3.event.stopPropagation();
     };
-    ActualMap.prototype.d3_behavior_zoom_delta = function () {
+    Map.prototype.d3_behavior_zoom_delta = function () {
         if(!this.d3_behavior_zoom_div) {
             this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
         }
@@ -720,12 +752,12 @@ var ActualMap = (function () {
         }
         return delta * 0.005;
     };
-    return ActualMap;
+    return Map;
 })();
 function makeMap(parent) {
-    return new ActualMap(parent);
+    return new Map(parent);
 }
 window['makeMap'] = makeMap;
 
 });
-require("/ActualMap.js");
+require("/Map.js");

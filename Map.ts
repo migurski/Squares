@@ -1,10 +1,12 @@
 ///<reference path="d3types.ts" />
+import Queue = module('Queue');
 import Core = module('Core');
 import Tile = module('Tile');
 import Grid = module('Grid');
 
 class Map
 {
+    private queue:Queue.Queue;
     private selection:ID3Selection;
     private parent:HTMLElement;
     private grid:Grid.Grid;
@@ -26,6 +28,7 @@ class Map
         this.grid = new Grid.Grid(center);
         this.grid.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
         
+        this.queue = new Queue.Queue();
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
         
@@ -73,40 +76,42 @@ class Map
     
    /**
     * Return a function usable in d3.select().each().
-    *
-    * Invokes the specified function for each element in the current
-    * selection, passing in the current datum `d` and index `i`, with
-    * the `this` context of the current DOM element.
-    *
-    * https://github.com/mbostock/d3/wiki/Selections#wiki-each
     */
     private getTileQueuer():(tile:Tile.Tile, index:number)=>void
     {
-        var map = this;
+        var queue = this.queue;
         
-        return function(tile:Tile.Tile, index:number)
+       /**
+        * Invokes the specified function for each element in the current
+        * selection, passing in the current datum `tile` and index `i`,
+        * with the `this` context of the current DOM element.
+        *
+        * https://github.com/mbostock/d3/wiki/Selections#wiki-each
+        */
+        return function(tile:Tile.Tile, i:number)
         {
-            d3.select(this)
-              .attr('src', 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg');
+            var src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
+            queue.append(this, src);
         }
     }
     
    /**
     * Return a function usable in d3.select().each().
-    *
-    * Invokes the specified function for each element in the current
-    * selection, passing in the current datum `d` and index `i`, with
-    * the `this` context of the current DOM element.
-    *
-    * https://github.com/mbostock/d3/wiki/Selections#wiki-each
     */
     private getTileDequeuer():(tile:Tile.Tile, index:number)=>void
     {
-        var map = this;
+        var queue = this.queue;
         
-        return function(tile:Tile.Tile, index:number)
+       /**
+        * Invokes the specified function for each element in the current
+        * selection, passing in the current datum `tile` and index `i`,
+        * with the `this` context of the current DOM element.
+        *
+        * https://github.com/mbostock/d3/wiki/Selections#wiki-each
+        */
+        return function(tile:Tile.Tile, i:number)
         {
-            console.log('Removing', tile.toKey());
+            queue.remove(this);
         }
     }
     
