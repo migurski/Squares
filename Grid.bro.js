@@ -502,6 +502,62 @@ exports.Queue = Queue;
 
 });
 
+require.define("/Mouse.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+
+var Control = (function () {
+    function Control(map) {
+        this.map = map;
+    }
+    Control.prototype.onMousedown = function () {
+        var control = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
+        d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
+            control.onMouseup();
+        });
+        d3.event.preventDefault();
+        d3.event.stopPropagation();
+    };
+    Control.prototype.onMouseup = function () {
+        d3.select(window).on('mousemove.map', null).on('mouseup.map', null);
+    };
+    Control.prototype.getOnMousemove = function (start) {
+        var map = this.map, prev = start;
+        return function () {
+            var curr = new Core.Point(d3.event.pageX, d3.event.pageY), diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);
+            map.grid.panBy(diff);
+            map.redraw();
+            prev = curr;
+        };
+    };
+    Control.prototype.onMousewheel = function () {
+        var delta = Math.min(18 - this.map.grid.coord.zoom, Math.max(0 - this.map.grid.coord.zoom, this.d3_behavior_zoom_delta()));
+        if(delta != 0) {
+            var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]);
+            this.map.grid.zoomByAbout(delta, anchor);
+            this.map.redraw();
+        }
+        d3.event.preventDefault();
+        d3.event.stopPropagation();
+    };
+    Control.prototype.d3_behavior_zoom_delta = function () {
+        if(!this.d3_behavior_zoom_div) {
+            this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
+        }
+        var e = d3.event, delta;
+        try  {
+            this.d3_behavior_zoom_div['scrollTop'] = 250;
+            this.d3_behavior_zoom_div.dispatchEvent(e);
+            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
+        } catch (error) {
+            delta = e.wheelDelta || (-e.detail * 5);
+        }
+        return delta * 0.005;
+    };
+    return Control;
+})();
+exports.Control = Control;
+
+});
+
 require.define("/Core.js",function(require,module,exports,__dirname,__filename,process,global){var Point = (function () {
     function Point(x, y) {
         this.x = x;
@@ -699,11 +755,13 @@ exports.Grid = Grid;
 });
 
 require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Queue = require("./Queue")
+var Mouse = require("./Mouse")
 var Core = require("./Core")
 var Tile = require("./Tile")
 var Grid = require("./Grid")
 var Map = (function () {
     function Map(parent) {
+        this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select('#' + parent.id);
         this.loaded_tiles = {
         };
@@ -715,13 +773,13 @@ var Map = (function () {
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
-        var map = this;
+        var mouse_ctrl = this.mouse_ctrl;
         this.selection.on('mousedown.map', function () {
-            map.onMousedown();
+            mouse_ctrl.onMousedown();
         }).on('mousewheel.map', function () {
-            map.onMousewheel();
+            mouse_ctrl.onMousewheel();
         }).on('DOMMouseScroll.map', function () {
-            map.onMousewheel();
+            mouse_ctrl.onMousewheel();
         });
     }
     Map.prototype.zoom = function () {
@@ -776,50 +834,6 @@ var Map = (function () {
         return function (tile, i) {
             queue.cancel(this);
         };
-    };
-    Map.prototype.onMousedown = function () {
-        var map = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
-        d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
-            map.onMouseup();
-        });
-        d3.event.preventDefault();
-        d3.event.stopPropagation();
-    };
-    Map.prototype.onMouseup = function () {
-        d3.select(window).on('mousemove.map', null).on('mouseup.map', null);
-    };
-    Map.prototype.getOnMousemove = function (start) {
-        var map = this, prev = start;
-        return function () {
-            var curr = new Core.Point(d3.event.pageX, d3.event.pageY), diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);
-            map.grid.panBy(diff);
-            map.redraw();
-            prev = curr;
-        };
-    };
-    Map.prototype.onMousewheel = function () {
-        var delta = Math.min(18 - this.grid.coord.zoom, Math.max(0 - this.grid.coord.zoom, this.d3_behavior_zoom_delta()));
-        if(delta != 0) {
-            var mouse = d3.mouse(this.parent), anchor = new Core.Point(mouse[0], mouse[1]);
-            this.grid.zoomByAbout(delta, anchor);
-            this.redraw();
-        }
-        d3.event.preventDefault();
-        d3.event.stopPropagation();
-    };
-    Map.prototype.d3_behavior_zoom_delta = function () {
-        if(!this.d3_behavior_zoom_div) {
-            this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
-        }
-        var e = d3.event, delta;
-        try  {
-            this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(e);
-            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
-        } catch (error) {
-            delta = e.wheelDelta || (-e.detail * 5);
-        }
-        return delta * 0.005;
     };
     return Map;
 })();

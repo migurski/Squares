@@ -1,19 +1,19 @@
 ///<reference path="d3types.ts" />
 import Queue = module('Queue');
+import Mouse = module('Mouse');
 import Core = module('Core');
 import Tile = module('Tile');
 import Grid = module('Grid');
 
-class Map
+class Map implements Mouse.Map
 {
+    public grid:Grid.Grid;
+    public parent:HTMLElement;
+
     private queue:Queue.Queue;
+    private mouse_ctrl:Mouse.Control;
     private selection:ID3Selection;
     private loaded_tiles:Object;
-    private parent:HTMLElement;
-    private grid:Grid.Grid;
-    
-    // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
-    private d3_behavior_zoom_div:Node;
     
     // functions called for each image tile as it enters/exits the map.
     private tile_queuer:(tile:Tile.Tile, index:number)=>void;
@@ -22,6 +22,7 @@ class Map
     
     constructor(parent:HTMLElement)
     {
+        this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select('#'+parent.id);
         this.loaded_tiles = {};
         this.parent = parent;
@@ -36,12 +37,12 @@ class Map
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
         
-        var map = this;
+        var mouse_ctrl = this.mouse_ctrl;
         
         this.selection
-            .on('mousedown.map', function() { map.onMousedown() })
-            .on('mousewheel.map', function() { map.onMousewheel() })
-            .on('DOMMouseScroll.map', function() { map.onMousewheel() });
+            .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
+            .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
+            .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });
     }
     
     public zoom():number
@@ -149,100 +150,6 @@ class Map
             queue.cancel(this);
         }
     }
-    
-    public onMousedown():void
-    {
-        var map = this,
-            start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
-
-        d3.select(window)
-            .on('mousemove.map', this.getOnMousemove(start_mouse))
-            .on('mouseup.map', function() { map.onMouseup() })
-
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
-    }
-    
-    public onMouseup():void
-    {
-        d3.select(window)
-            .on('mousemove.map', null)
-            .on('mouseup.map', null)
-    }
-    
-    private getOnMousemove(start:Core.Point):()=>void
-    {
-        var map = this,
-            prev = start;
-    
-        return function()
-        {
-            var curr = new Core.Point(d3.event.pageX, d3.event.pageY),
-                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);            
-
-            map.grid.panBy(diff);
-            map.redraw();
-            // d3.timer(redraw);
-            
-            prev = curr;
-        }
-    }
-    
-    public onMousewheel():void
-    {
-        // 18 = max zoom, 0 = min zoom
-        var delta = Math.min(18 - this.grid.coord.zoom, Math.max(0 - this.grid.coord.zoom, this.d3_behavior_zoom_delta()));
-
-        if(delta != 0)
-        {
-            var mouse = d3.mouse(this.parent),
-                anchor = new Core.Point(mouse[0], mouse[1]);
-            
-            this.grid.zoomByAbout(delta, anchor);
-            this.redraw();
-            // d3.timer(redraw);
-        }
-
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
-    }
-
-    private d3_behavior_zoom_delta():number
-    {
-        //
-        // mousewheel events are totally broken!
-        // https://bugs.webkit.org/show_bug.cgi?id=40441
-        // not only that, but Chrome and Safari differ in re. to acceleration!
-        //
-        if(!this.d3_behavior_zoom_div)
-        {
-            this.d3_behavior_zoom_div = d3
-                .select("body")
-                .append("div")
-                  .style("visibility", "hidden")
-                  .style("top", 0)
-                  .style("height", 0)
-                  .style("width", 0)
-                  .style("overflow-y", "scroll")
-                  .append("div")
-                    .style("height", "2000px")
-                    .node()
-                    .parentNode;
-        }
-        
-        var e = d3.event, delta;
-
-        try {
-            this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(e);
-            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
-
-        } catch (error) {
-            delta = e.wheelDelta || (-e.detail * 5);
-        }
-        
-        return delta * .005;
-    }          
 }
 
 function makeMap(parent:HTMLElement):Map
