@@ -490,11 +490,11 @@ exports.Coordinate = Coordinate;
 });
 
 require.define("/Tile.js",function(require,module,exports,__dirname,__filename,process,global){
-var Map = require("./Map")
+var Grid = require("./Grid")
 var Tile = (function () {
-    function Tile(coordinate, map) {
+    function Tile(coordinate, grid) {
         this.coord = coordinate;
-        this.map = map;
+        this.grid = grid;
     }
     Tile.prototype.toString = function () {
         return [
@@ -511,28 +511,28 @@ var Tile = (function () {
         ].join('/');
     };
     Tile.prototype.left = function () {
-        var point = this.map.coordinatePoint(this.coord.container());
+        var point = this.grid.coordinatePoint(this.coord.container());
         return Math.round(point.x) + 'px';
     };
     Tile.prototype.top = function () {
-        var point = this.map.coordinatePoint(this.coord.container());
+        var point = this.grid.coordinatePoint(this.coord.container());
         return Math.round(point.y) + 'px';
     };
     Tile.prototype.width = function () {
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * Map.TileSize) + 'px';
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        return Math.ceil(scale * Grid.TileSize) + 'px';
     };
     Tile.prototype.height = function () {
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * Map.TileSize) + 'px';
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        return Math.ceil(scale * Grid.TileSize) + 'px';
     };
     Tile.prototype.transform = function () {
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
-        if(scale * Map.TileSize % 1) {
-            scale += (1 - scale * Map.TileSize % 1) / Map.TileSize;
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        if(scale * Grid.TileSize % 1) {
+            scale += (1 - scale * Grid.TileSize % 1) / Grid.TileSize;
         }
-        var zoomedCoord = this.map.roundCoord().zoomBy(this.coord.zoom - this.map.roundCoord().zoom), x = Math.round(this.map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale), y = Math.round(this.map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
-        return matrix_string(scale, x, y, Map.TileSize / 2.0, Map.TileSize / 2.0);
+        var zoomedCoord = this.grid.roundCoord().zoomBy(this.coord.zoom - this.grid.roundCoord().zoom), x = Math.round(this.grid.center.x + (this.coord.column - zoomedCoord.column) * Grid.TileSize * scale), y = Math.round(this.grid.center.y + (this.coord.row - zoomedCoord.row) * Grid.TileSize * scale);
+        return matrix_string(scale, x, y, Grid.TileSize / 2.0, Grid.TileSize / 2.0);
     };
     return Tile;
 })();
@@ -576,39 +576,39 @@ exports.matrix_string = matrix_string;
 
 });
 
-require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+require.define("/Grid.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
 var Tile = require("./Tile")
 exports.TileSize = 256;
 exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
-var Map = (function () {
-    function Map(center) {
+var Grid = (function () {
+    function Grid(center) {
         this.center = center;
     }
-    Map.prototype.roundCoord = function () {
+    Grid.prototype.roundCoord = function () {
         return this.coord.zoomTo(Math.round(this.coord.zoom));
     };
-    Map.prototype.resize = function (size) {
+    Grid.prototype.resize = function (size) {
         this.center = new Core.Point(size.x / 2, size.y / 2);
     };
-    Map.prototype.panBy = function (diff) {
+    Grid.prototype.panBy = function (diff) {
         var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
         this.coord = this.pointCoordinate(new_center);
     };
-    Map.prototype.zoomByAbout = function (delta, anchor) {
+    Grid.prototype.zoomByAbout = function (delta, anchor) {
         var offset = new Core.Point(this.center.x * 2 - anchor.x, this.center.y * 2 - anchor.y), coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
         this.coord = coord;
         this.coord = this.coord.zoomBy(delta);
         this.coord = this.pointCoordinate(offset);
     };
-    Map.prototype.coordinatePoint = function (coord) {
+    Grid.prototype.coordinatePoint = function (coord) {
         var pixel_center = this.coord.zoomBy(exports.TileExp), pixel_coord = coord.zoomTo(pixel_center.zoom), x = this.center.x - pixel_center.column + pixel_coord.column, y = this.center.y - pixel_center.row + pixel_coord.row;
         return new Core.Point(x, y);
     };
-    Map.prototype.pointCoordinate = function (point) {
+    Grid.prototype.pointCoordinate = function (point) {
         var x = point.x - this.center.x, y = point.y - this.center.y, pixel_center = this.coord.zoomBy(exports.TileExp), pixel_coord = pixel_center.right(x).down(y);
         return pixel_coord.zoomTo(this.coord.zoom);
     };
-    Map.prototype.visible_tiles = function () {
+    Grid.prototype.visible_tiles = function () {
         var round_coord = this.roundCoord(), tl = this.pointCoordinate(new Core.Point(0, 0)), br = this.pointCoordinate(new Core.Point(this.center.x * 2, this.center.y * 2));
         tl = tl.zoomTo(round_coord.zoom).container();
         br = br.zoomTo(round_coord.zoom).container();
@@ -621,92 +621,92 @@ var Map = (function () {
         }
         return tiles;
     };
-    return Map;
+    return Grid;
 })();
-exports.Map = Map;
+exports.Grid = Grid;
 
 });
 
-require.define("/Grid.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+require.define("/ActualMap.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
 var Tile = require("./Tile")
-var Map = require("./Map")
-var Grid = (function () {
-    function Grid(parent) {
+var Grid = require("./Grid")
+var ActualMap = (function () {
+    function ActualMap(parent) {
         this.selection = d3.select('#' + parent.id);
         this.parent = parent;
         var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
-        this.map = new Map.Map(center);
-        this.map.coord = new Core.Coordinate(0.5, 0.5, 0).zoomTo(3.4);
-        var grid = this;
+        this.grid = new Grid.Grid(center);
+        this.grid.coord = new Core.Coordinate(0.5, 0.5, 0).zoomTo(3.4);
+        var actual_map = this;
         this.selection.on('mousedown.map', function () {
-            grid.onMousedown();
+            actual_map.onMousedown();
         }).on('mousewheel.map', function () {
-            grid.onMousewheel();
+            actual_map.onMousewheel();
         }).on('DOMMouseScroll.map', function () {
-            grid.onMousewheel();
+            actual_map.onMousewheel();
         });
     }
-    Grid.prototype.redraw = function () {
-        var tiles = this.map.visible_tiles(), join = this.selection.selectAll('img').data(tiles, Grid.tile_key);
+    ActualMap.prototype.redraw = function () {
+        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img').data(tiles, ActualMap.tile_key);
         join.exit().remove();
         join.enter().append('img').attr('src', function (tile) {
             return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
         });
         if(Tile.transform_property) {
-            this.selection.selectAll('img').style(Tile.transform_property, Grid.tile_xform);
+            this.selection.selectAll('img').style(Tile.transform_property, ActualMap.tile_xform);
         } else {
-            this.selection.selectAll('img').style('left', Grid.tile_left).style('top', Grid.tile_top).style('width', Grid.tile_width).style('height', Grid.tile_height);
+            this.selection.selectAll('img').style('left', ActualMap.tile_left).style('top', ActualMap.tile_top).style('width', ActualMap.tile_width).style('height', ActualMap.tile_height);
         }
     };
-    Grid.tile_key = function tile_key(tile) {
+    ActualMap.tile_key = function tile_key(tile) {
         return tile.toKey();
     };
-    Grid.tile_left = function tile_left(tile) {
+    ActualMap.tile_left = function tile_left(tile) {
         return tile.left();
     };
-    Grid.tile_top = function tile_top(tile) {
+    ActualMap.tile_top = function tile_top(tile) {
         return tile.top();
     };
-    Grid.tile_width = function tile_width(tile) {
+    ActualMap.tile_width = function tile_width(tile) {
         return tile.width();
     };
-    Grid.tile_height = function tile_height(tile) {
+    ActualMap.tile_height = function tile_height(tile) {
         return tile.height();
     };
-    Grid.tile_xform = function tile_xform(tile) {
+    ActualMap.tile_xform = function tile_xform(tile) {
         return tile.transform();
     };
-    Grid.prototype.onMousedown = function () {
-        var grid = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
+    ActualMap.prototype.onMousedown = function () {
+        var actual_map = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
         d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
-            grid.onMouseup();
+            actual_map.onMouseup();
         });
         d3.event.preventDefault();
         d3.event.stopPropagation();
     };
-    Grid.prototype.onMouseup = function () {
+    ActualMap.prototype.onMouseup = function () {
         d3.select(window).on('mousemove.map', null).on('mouseup.map', null);
     };
-    Grid.prototype.getOnMousemove = function (start) {
-        var grid = this, prev = start;
+    ActualMap.prototype.getOnMousemove = function (start) {
+        var actual_map = this, prev = start;
         return function () {
             var curr = new Core.Point(d3.event.pageX, d3.event.pageY), diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);
-            grid.map.panBy(diff);
-            grid.redraw();
+            actual_map.grid.panBy(diff);
+            actual_map.redraw();
             prev = curr;
         };
     };
-    Grid.prototype.onMousewheel = function () {
-        var delta = Math.min(18 - this.map.coord.zoom, Math.max(0 - this.map.coord.zoom, this.d3_behavior_zoom_delta()));
+    ActualMap.prototype.onMousewheel = function () {
+        var delta = Math.min(18 - this.grid.coord.zoom, Math.max(0 - this.grid.coord.zoom, this.d3_behavior_zoom_delta()));
         if(delta != 0) {
             var mouse = d3.mouse(this.parent), anchor = new Core.Point(mouse[0], mouse[1]);
-            this.map.zoomByAbout(delta, anchor);
+            this.grid.zoomByAbout(delta, anchor);
             this.redraw();
         }
         d3.event.preventDefault();
         d3.event.stopPropagation();
     };
-    Grid.prototype.d3_behavior_zoom_delta = function () {
+    ActualMap.prototype.d3_behavior_zoom_delta = function () {
         if(!this.d3_behavior_zoom_div) {
             this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
         }
@@ -720,12 +720,12 @@ var Grid = (function () {
         }
         return delta * 0.005;
     };
-    return Grid;
+    return ActualMap;
 })();
 function makeMap(parent) {
-    return new Grid(parent);
+    return new ActualMap(parent);
 }
 window['makeMap'] = makeMap;
 
 });
-require("/Grid.js");
+require("/ActualMap.js");

@@ -1,166 +1,104 @@
-///<reference path="d3types.ts" />
 import Core = module('Core');
 import Tile = module('Tile');
-import Map = module('Map');
 
-class Grid
+export var TileSize:number = 256;
+export var TileExp:number = Math.log(TileSize) / Math.log(2);
+
+export class Grid
 {
-    private selection:ID3Selection;
-    private parent:HTMLElement;
-    private map:Map.Map;
+    public coord:Core.Coordinate;
+    public center:Core.Point;
     
-    // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
-    private d3_behavior_zoom_div:Node;
-    
-    constructor(parent:HTMLElement)
+    constructor(center:Core.Point)
     {
-        this.selection = d3.select('#'+parent.id);
-        this.parent = parent;
-        
-        var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
-        
-        this.map = new Map.Map(center);
-        this.map.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
-        
-        var grid = this;
-        
-        this.selection
-            .on('mousedown.map', function() { grid.onMousedown() })
-            .on('mousewheel.map', function() { grid.onMousewheel() })
-            .on('DOMMouseScroll.map', function() { grid.onMousewheel() });
+        this.center = center;
     }
     
-    public redraw():void
+    public roundCoord():Core.Coordinate
     {
-        var tiles = this.map.visible_tiles(),
-            join = this.selection.selectAll('img').data(tiles, Grid.tile_key);
+        return this.coord.zoomTo(Math.round(this.coord.zoom));
+    }
+    
+    public resize(size:Core.Point):void
+    {
+        this.center = new Core.Point(size.x/2, size.y/2);
+    }
+    
+   /**
+    * Pan by a given x and y distance.
+    */
+    public panBy(diff:Core.Point):void
+    {
+        var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
+        this.coord = this.pointCoordinate(new_center);
+    }
+    
+   /**
+    * Zoom around a given anchor point by a specified amount.
+    */
+    public zoomByAbout(delta:number, anchor:Core.Point):void
+    {
+        var offset = new Core.Point(this.center.x*2 - anchor.x, this.center.y*2 - anchor.y),
+            coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
         
-        join.exit()
-            .remove();
-
-        join.enter()
-            .append('img')
-            .attr('src', function(tile) { return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg' });
+        // center the grid on the wheeled-over coordinate
+        this.coord = coord;
         
-        if(Tile.transform_property) {
-            // Use CSS transforms if available.
-            this.selection.selectAll('img')
-                .style(Tile.transform_property, Grid.tile_xform);
-
-        } else {
-            this.selection.selectAll('img')
-                .style('left', Grid.tile_left)
-                .style('top', Grid.tile_top)
-                .style('width', Grid.tile_width)
-                .style('height', Grid.tile_height);
-        }
+        // zoom the center coordinate
+        this.coord = this.coord.zoomBy(delta);
+        
+        // move the wheeled-over coordinate back to where it was
+        this.coord = this.pointCoordinate(offset);
     }
     
-    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
-    public static tile_left  (tile:Tile.Tile):string { return tile.left()      }
-    public static tile_top   (tile:Tile.Tile):string { return tile.top()       }
-    public static tile_width (tile:Tile.Tile):string { return tile.width()     }
-    public static tile_height(tile:Tile.Tile):string { return tile.height()    }
-    public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
-    
-    public onMousedown():void
+    public coordinatePoint(coord:Core.Coordinate):Core.Point
     {
-        var grid = this,
-            start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
-
-        d3.select(window)
-            .on('mousemove.map', this.getOnMousemove(start_mouse))
-            .on('mouseup.map', function() { grid.onMouseup() })
-
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
+        var pixel_center = this.coord.zoomBy(TileExp),
+            pixel_coord = coord.zoomTo(pixel_center.zoom),
+            x = this.center.x - pixel_center.column + pixel_coord.column,
+            y = this.center.y - pixel_center.row + pixel_coord.row;
+        
+        return new Core.Point(x, y);
     }
     
-    public onMouseup():void
+    public pointCoordinate(point:Core.Point):Core.Coordinate
     {
-        d3.select(window)
-            .on('mousemove.map', null)
-            .on('mouseup.map', null)
+        var x = point.x - this.center.x,
+            y = point.y - this.center.y,
+            pixel_center = this.coord.zoomBy(TileExp),
+            pixel_coord = pixel_center.right(x).down(y);
+        
+        return pixel_coord.zoomTo(this.coord.zoom);
     }
     
-    private getOnMousemove(start:Core.Point):()=>void
-    {
-        var grid = this,
-            prev = start;
-    
-        return function()
-        {
-            var curr = new Core.Point(d3.event.pageX, d3.event.pageY),
-                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);            
-
-            grid.map.panBy(diff);
-            grid.redraw();
-            // d3.timer(redraw);
-            
-            prev = curr;
-        }
-    }
-    
-    public onMousewheel():void
-    {
-        // 18 = max zoom, 0 = min zoom
-        var delta = Math.min(18 - this.map.coord.zoom, Math.max(0 - this.map.coord.zoom, this.d3_behavior_zoom_delta()));
-
-        if(delta != 0)
-        {
-            var mouse = d3.mouse(this.parent),
-                anchor = new Core.Point(mouse[0], mouse[1]);
-            
-            this.map.zoomByAbout(delta, anchor);
-            this.redraw();
-            // d3.timer(redraw);
-        }
-
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
-    }
-
-    private d3_behavior_zoom_delta():number
+   /**
+    * Retrieve a list of Tile objects covering the current visible area.
+    */
+    public visible_tiles():Tile.Tile[]
     {
         //
-        // mousewheel events are totally broken!
-        // https://bugs.webkit.org/show_bug.cgi?id=40441
-        // not only that, but Chrome and Safari differ in re. to acceleration!
+        // find coordinate extents of grid, at a rounded zoom level.
         //
-        if(!this.d3_behavior_zoom_div)
-        {
-            this.d3_behavior_zoom_div = d3
-                .select("body")
-                .append("div")
-                  .style("visibility", "hidden")
-                  .style("top", 0)
-                  .style("height", 0)
-                  .style("width", 0)
-                  .style("overflow-y", "scroll")
-                  .append("div")
-                    .style("height", "2000px")
-                    .node()
-                    .parentNode;
+        var round_coord = this.roundCoord(),
+            tl = this.pointCoordinate(new Core.Point(0, 0)),
+            br = this.pointCoordinate(new Core.Point(this.center.x*2, this.center.y*2));
+        
+        // convert to zoom level we'll use for tiles.
+        tl = tl.zoomTo(round_coord.zoom).container();
+        br = br.zoomTo(round_coord.zoom).container();
+        
+        //
+        // generate visible tile coords.
+        //
+        var tiles = [];
+        
+        for(var i = tl.row; i <= br.row; i++) {
+            for(var j = tl.column; j <= br.column; j++) {
+                var coord = new Core.Coordinate(i, j, round_coord.zoom);
+                tiles.push(new Tile.Tile(coord, this));
+            }
         }
         
-        var e = d3.event, delta;
-
-        try {
-            this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(e);
-            delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
-
-        } catch (error) {
-            delta = e.wheelDelta || (-e.detail * 5);
-        }
-        
-        return delta * .005;
-    }          
+        return tiles;
+    }
 }
-
-function makeMap(parent:HTMLElement):Grid
-{
-    return new Grid(parent);
-}
-
-window['makeMap'] = makeMap;

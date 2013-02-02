@@ -1,15 +1,15 @@
 import Core = module('Core');
-import Map = module('Map');
+import Grid = module('Grid');
 
 export class Tile
 {
     public coord:Core.Coordinate;
-    public map:Map.Map;
+    public grid:Grid.Grid;
     
-    constructor(coordinate:Core.Coordinate, map:Map.Map)
+    constructor(coordinate:Core.Coordinate, grid:Grid.Grid)
     {
         this.coord = coordinate;
-        this.map = map;
+        this.grid = grid;
     }
     
     public toString():string
@@ -29,14 +29,14 @@ export class Tile
     */
     public left():string
     { 
-        var point = this.map.coordinatePoint(this.coord.container());
+        var point = this.grid.coordinatePoint(this.coord.container());
         return Math.round(point.x) + 'px'; 
     
         /*
-        var scale = Math.pow(2, map.coord.zoom - this.coord.zoom),
-            power = Math.pow(2, this.coord.zoom - map.roundCoord().zoom),
-            centerCol = map.roundCoord().column * power;
-        return Math.round(map.center.x + (this.coord.column - centerCol) * Map.TileSize * scale) + 'px'; 
+        var scale = Math.pow(2, grid.coord.zoom - this.coord.zoom),
+            power = Math.pow(2, this.coord.zoom - grid.roundCoord().zoom),
+            centerCol = grid.roundCoord().column * power;
+        return Math.round(grid.center.x + (this.coord.column - centerCol) * Grid.TileSize * scale) + 'px'; 
         */
     }
 
@@ -47,14 +47,14 @@ export class Tile
     */
     public top():string
     { 
-        var point = this.map.coordinatePoint(this.coord.container());
+        var point = this.grid.coordinatePoint(this.coord.container());
         return Math.round(point.y) + 'px'; 
     
         /*
-        var scale = Math.pow(2, map.coord.zoom - this.coord.zoom),
-            power = Math.pow(2, this.coord.zoom - map.roundCoord().zoom),
-            centerRow = map.roundCoord().row * power;
-        return Math.round(map.center.y + (this.coord.row - centerRow) * Map.TileSize * scale) + 'px'; 
+        var scale = Math.pow(2, grid.coord.zoom - this.coord.zoom),
+            power = Math.pow(2, this.coord.zoom - grid.roundCoord().zoom),
+            centerRow = grid.roundCoord().row * power;
+        return Math.round(grid.center.y + (this.coord.row - centerRow) * Grid.TileSize * scale) + 'px'; 
         */
     }
 
@@ -65,8 +65,8 @@ export class Tile
     */
     public width():string
     {
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * Map.TileSize)+'px'; 
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        return Math.ceil(scale * Grid.TileSize)+'px'; 
     }
 
    /**
@@ -76,8 +76,8 @@ export class Tile
     */
     public height():string
     { 
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
-        return Math.ceil(scale * Map.TileSize)+'px'; 
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        return Math.ceil(scale * Grid.TileSize)+'px'; 
     }          
     
    /**
@@ -87,18 +87,18 @@ export class Tile
     */
     public transform():string
     {
-        var scale = Math.pow(2, this.map.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
 
         // adjust to nearest whole pixel scale (thx @tmcw)
-        if(scale * Map.TileSize % 1) {
-            scale += (1 - scale * Map.TileSize % 1) / Map.TileSize;
+        if(scale * Grid.TileSize % 1) {
+            scale += (1 - scale * Grid.TileSize % 1) / Grid.TileSize;
         }                
 
-        var zoomedCoord = this.map.roundCoord().zoomBy(this.coord.zoom - this.map.roundCoord().zoom),
-            x = Math.round(this.map.center.x + (this.coord.column - zoomedCoord.column) * Map.TileSize * scale),
-            y = Math.round(this.map.center.y + (this.coord.row - zoomedCoord.row) * Map.TileSize * scale);
+        var zoomedCoord = this.grid.roundCoord().zoomBy(this.coord.zoom - this.grid.roundCoord().zoom),
+            x = Math.round(this.grid.center.x + (this.coord.column - zoomedCoord.column) * Grid.TileSize * scale),
+            y = Math.round(this.grid.center.y + (this.coord.row - zoomedCoord.row) * Grid.TileSize * scale);
 
-        return matrix_string(scale, x, y, Map.TileSize/2.0, Map.TileSize/2.0);
+        return matrix_string(scale, x, y, Grid.TileSize/2.0, Grid.TileSize/2.0);
     }
 }
 

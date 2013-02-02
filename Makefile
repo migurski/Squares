@@ -1,5 +1,5 @@
 Grid.min.js: d3types.ts \
-	         Grid.ts Core.ts Tile.ts Map.ts
-	tsc --out . Grid.ts Core.ts Tile.ts Map.ts
-	browserify -o Grid.bro.js --exports require Grid.js
+	         Map.ts Core.ts Tile.ts Grid.ts
+	tsc --out . Map.ts Core.ts Tile.ts Grid.ts
+	browserify -o Grid.bro.js --exports require Map.js
 	cat Grid.bro.js | jsmin >$@
