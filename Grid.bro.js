@@ -438,15 +438,16 @@ var Core = require("./Core")
 var Tile = require("./Tile")
 var Grid = require("./Grid")
 var Map = (function () {
-    function Map(parent) {
+    function Map(parent, template, row, column, zoom) {
         this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select('#' + parent.id);
         this.loaded_tiles = {
         };
+        this.template = template;
         this.parent = parent;
         var center = new Core.Point(this.parent.clientWidth / 2, this.parent.clientHeight / 2);
         this.grid = new Grid.Grid(center);
-        this.grid.coord = new Core.Coordinate(0.5, 0.5, 0).zoomTo(3.4);
+        this.grid.coord = new Core.Coordinate(row, column, zoom);
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
@@ -501,10 +502,13 @@ var Map = (function () {
         };
     };
     Map.prototype.getTileQueuer = function () {
-        var queue = this.queue;
+        var map = this;
         return function (tile, i) {
-            var src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
-            queue.append(this, src);
+            var src = map.template;
+            src = src.replace('{z}', '{Z}').replace('{Z}', tile.coord.zoom.toFixed(0));
+            src = src.replace('{x}', '{X}').replace('{X}', tile.coord.column.toFixed(0));
+            src = src.replace('{y}', '{Y}').replace('{Y}', tile.coord.row.toFixed(0));
+            map.queue.append(this, src);
         };
     };
     Map.prototype.getTileDequeuer = function () {
@@ -841,8 +845,8 @@ exports.Grid = Grid;
 });
 
 require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
-function makeMap(parent) {
-    return new Image.Map(parent);
+function makeMap(parent, template, row, column, zoom) {
+    return new Image.Map(parent, template, row, column, zoom);
 }
 window['makeMap'] = makeMap;
 

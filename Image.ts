@@ -14,23 +14,25 @@ export class Map implements Base.Map
     private mouse_ctrl:Mouse.Control;
     private selection:ID3Selection;
     private loaded_tiles:Object;
+    private template:string;
     
     // functions called for each image tile as it enters/exits the map.
     private tile_queuer:(tile:Tile.Tile, index:number)=>void;
     private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
     private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
     
-    constructor(parent:HTMLElement)
+    constructor(parent:HTMLElement, template:string, row:number, column:number, zoom:number)
     {
         this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select('#'+parent.id);
         this.loaded_tiles = {};
+        this.template = template;
         this.parent = parent;
         
         var center = new Core.Point(this.parent.clientWidth/2, this.parent.clientHeight/2);
         
         this.grid = new Grid.Grid(center);
-        this.grid.coord = new Core.Coordinate(.5, .5, 0).zoomTo(3.4);
+        this.grid.coord = new Core.Coordinate(row, column, zoom);
         
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
@@ -115,7 +117,7 @@ export class Map implements Base.Map
     */
     private getTileQueuer():(tile:Tile.Tile, i:number)=>void
     {
-        var queue = this.queue;
+        var map = this;
         
        /**
         * Invokes the specified function for each element in the current
@@ -126,8 +128,13 @@ export class Map implements Base.Map
         */
         return function(tile:Tile.Tile, i:number)
         {
-            var src = 'http://otile1.mqcdn.com/tiles/1.0.0/osm/' + tile.toKey() + '.jpg';
-            queue.append(this, src);
+            var src = map.template;
+            
+            src = src.replace('{z}', '{Z}').replace('{Z}', tile.coord.zoom.toFixed(0));
+            src = src.replace('{x}', '{X}').replace('{X}', tile.coord.column.toFixed(0));
+            src = src.replace('{y}', '{Y}').replace('{Y}', tile.coord.row.toFixed(0));
+            
+            map.queue.append(this, src);
         }
     }
     
