@@ -605,8 +605,8 @@ var Control = (function () {
     Control.prototype.getOnMousemove = function (start) {
         var map = this.map, prev = start;
         return function () {
-            var curr = new Core.Point(d3.event.pageX, d3.event.pageY), diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);
-            map.grid.panBy(diff);
+            var curr = new Core.Point(d3.event.pageX, d3.event.pageY), dx = curr.x - prev.x, dy = curr.y - prev.y;
+            map.grid.panBy(dx, dy);
             map.redraw();
             prev = curr;
         };
@@ -800,11 +800,11 @@ var Grid = (function () {
     Grid.prototype.roundCoord = function () {
         return this.coord.zoomTo(Math.round(this.coord.zoom));
     };
-    Grid.prototype.resize = function (size) {
-        this.center = new Core.Point(size.x / 2, size.y / 2);
+    Grid.prototype.resize = function (w, h) {
+        this.center = new Core.Point(w / 2, h / 2);
     };
-    Grid.prototype.panBy = function (diff) {
-        var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
+    Grid.prototype.panBy = function (x, y) {
+        var new_center = new Core.Point(this.center.x - x, this.center.y - y);
         this.coord = this.pointCoordinate(new_center);
     };
     Grid.prototype.zoomByAbout = function (delta, anchor) {

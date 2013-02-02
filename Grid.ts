@@ -19,17 +19,20 @@ export class Grid
         return this.coord.zoomTo(Math.round(this.coord.zoom));
     }
     
-    public resize(size:Core.Point):void
+   /**
+    * Resize to a given width and height.
+    */
+    public resize(w:number, h:number):void
     {
-        this.center = new Core.Point(size.x/2, size.y/2);
+        this.center = new Core.Point(w/2, h/2);
     }
     
    /**
     * Pan by a given x and y distance.
     */
-    public panBy(diff:Core.Point):void
+    public panBy(x:number, y:number):void
     {
-        var new_center = new Core.Point(this.center.x - diff.x, this.center.y - diff.y);
+        var new_center = new Core.Point(this.center.x - x, this.center.y - y);
         this.coord = this.pointCoordinate(new_center);
     }
     

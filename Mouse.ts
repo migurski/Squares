@@ -43,9 +43,10 @@ export class Control
         return function()
         {
             var curr = new Core.Point(d3.event.pageX, d3.event.pageY),
-                diff = new Core.Point(curr.x - prev.x, curr.y - prev.y);            
+                dx = curr.x - prev.x,
+                dy = curr.y - prev.y;
 
-            map.grid.panBy(diff);
+            map.grid.panBy(dx, dy);
             map.redraw();
             // d3.timer(redraw);
             
