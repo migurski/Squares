@@ -444,7 +444,7 @@ var Request = (function () {
     };
     Request.prototype.load = function () {
         if(this.image && this.image.parentNode) {
-            d3.select(this.image).attr('src', this.src);
+            this.image.src = this.src;
             return true;
         }
         return false;
@@ -463,7 +463,7 @@ var Queue = (function () {
     }
     Queue.prototype.append = function (image, src) {
         if(src in this.loaded_tiles) {
-            d3.select(image).attr('src', src);
+            image.src = src;
         } else {
             var request = new Request(image, src);
             this.queue.push(request);

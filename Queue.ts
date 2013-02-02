@@ -1,4 +1,3 @@
-///<reference path="d3types.ts" />
 import Tile = module('Tile');
 
 class Request
@@ -23,7 +22,7 @@ class Request
     }
     
    /*
-    * Attempt to load the image with D3.
+    * Attempt to load the image.
     *
     * Return true if it's not been previously-denied.
     */
@@ -31,9 +30,7 @@ class Request
     {
         if(this.image && this.image.parentNode)
         {
-            // luckily there's a magic mapping inside d3
-            // that knows how to pass the correct data to provider()
-            d3.select(this.image).attr('src', this.src);
+            this.image.src = this.src;
             return true;
         }
         
@@ -63,7 +60,7 @@ export class Queue
     {
         if(src in this.loaded_tiles) {
             // if we've seen it this session the browser cache probably has it.
-            d3.select(image).attr('src', src);
+            image.src = src;
             
         } else {
             var request:Request = new Request(image, src);
