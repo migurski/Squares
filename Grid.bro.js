@@ -862,7 +862,7 @@ require.define("/Div.js",function(require,module,exports,__dirname,__filename,pr
 var Base = require("./Base")
 var Core = require("./Core")
 var Grid = require("./Grid")
-var Tile = require("./Tile")
+
 var Map = (function () {
     function Map(parent, row, column, zoom) {
         this.mouse_ctrl = new Mouse.Control(this);
@@ -892,11 +892,7 @@ var Map = (function () {
         var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
         join.exit().remove();
         join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(Map.tile_key).attr('id', Map.tile_key);
-        if(false) {
-            this.selection.selectAll('div.tile').style(Tile.transform_property, Map.tile_xform);
-        } else {
-            this.selection.selectAll('div.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
-        }
+        this.selection.selectAll('div.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
     };
     Map.tile_key = function tile_key(tile) {
         return tile.toKey();
