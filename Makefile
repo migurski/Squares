@@ -1,8 +1,15 @@
 Grid.min.js: d3types.ts \
 	         Base.ts Core.ts Grid.ts Mouse.ts Map.ts Tile.ts Image.ts Div.ts
+
 	tsc --out . Base.ts Core.ts Grid.ts Mouse.ts Map.ts Tile.ts Image.ts Div.ts
 	browserify -o Grid.bro.js --exports require Map.js
-	cat Grid.bro.js | jsmin >$@
+
+	curl --data-urlencode "js_code@Grid.bro.js" \
+	     -d compilation_level=SIMPLE_OPTIMIZATIONS \
+	     -d output_info=compiled_code \
+	     -d output_format=text \
+	     -so Grid.min.js \
+	     http://closure-compiler.appspot.com/compile
 
 clean:
 	rm -f Base.js Core.js Grid.js Mouse.js Map.js Tile.js Image.js Div.js
