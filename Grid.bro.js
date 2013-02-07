@@ -439,12 +439,12 @@ var Tile = require("./Tile")
 var Grid = require("./Grid")
 var Map = (function () {
     function Map(parent, template, row, column, zoom) {
-        this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select(parent);
         this.loaded_tiles = {
         };
         this.template = template;
         this.parent = parent;
+        this.setup_mouse_control();
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
@@ -452,7 +452,13 @@ var Map = (function () {
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
-        var mouse_ctrl = this.mouse_ctrl, map = this;
+        var map = this;
+        d3.select(window).on('resize.map', function () {
+            map.update_gridsize();
+        });
+    }
+    Map.prototype.setup_mouse_control = function () {
+        var mouse_ctrl = new Mouse.Control(this);
         this.selection.on('dblclick.map', function () {
             mouse_ctrl.onDoubleclick();
         }).on('mousedown.map', function () {
@@ -462,10 +468,8 @@ var Map = (function () {
         }).on('DOMMouseScroll.map', function () {
             mouse_ctrl.onMousewheel();
         });
-        d3.select(window).on('resize.map', function () {
-            map.update_gridsize();
-        });
-    }
+        return mouse_ctrl;
+    };
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
@@ -894,13 +898,19 @@ var Grid = require("./Grid")
 
 var Map = (function () {
     function Map(parent, row, column, zoom) {
-        this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select(parent);
         this.parent = parent;
+        this.setup_mouse_control();
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
-        var mouse_ctrl = this.mouse_ctrl, map = this;
+        var map = this;
+        d3.select(window).on('resize.map', function () {
+            map.update_gridsize();
+        });
+    }
+    Map.prototype.setup_mouse_control = function () {
+        var mouse_ctrl = new Mouse.Control(this);
         this.selection.on('dblclick.map', function () {
             mouse_ctrl.onDoubleclick();
         }).on('mousedown.map', function () {
@@ -910,10 +920,8 @@ var Map = (function () {
         }).on('DOMMouseScroll.map', function () {
             mouse_ctrl.onMousewheel();
         });
-        d3.select(window).on('resize.map', function () {
-            map.update_gridsize();
-        });
-    }
+        return mouse_ctrl;
+    };
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);

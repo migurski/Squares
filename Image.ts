@@ -11,7 +11,6 @@ export class Map implements Base.Map
     public parent:HTMLElement;
 
     private queue:Queue;
-    private mouse_ctrl:Mouse.Control;
     private selection:ID3Selection;
     private loaded_tiles:Object;
     private template:string;
@@ -23,11 +22,12 @@ export class Map implements Base.Map
     
     constructor(parent:HTMLElement, template:string, row:number, column:number, zoom:number)
     {
-        this.mouse_ctrl = new Mouse.Control(this);
         this.selection = d3.select(parent);
         this.loaded_tiles = {};
         this.template = template;
         this.parent = parent;
+        
+        this.setup_mouse_control();
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
@@ -38,16 +38,22 @@ export class Map implements Base.Map
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
         
-        var mouse_ctrl = this.mouse_ctrl,
-            map = this;
+        var map = this;
         
+        d3.select(window).on('resize.map', function() { map.update_gridsize() });
+    }
+    
+    private setup_mouse_control():Mouse.Control
+    {
+        var mouse_ctrl = new Mouse.Control(this);
+    
         this.selection
             .on('dblclick.map', function() { mouse_ctrl.onDoubleclick() })
             .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
             .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
             .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });
         
-        d3.select(window).on('resize.map', function() { map.update_gridsize() });
+        return mouse_ctrl;
     }
     
     private update_gridsize():void
