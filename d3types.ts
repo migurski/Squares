@@ -293,6 +293,7 @@ interface ID3Event extends Event
     pageX:number;
     pageY:number;
     wheelDelta:number;
+    shiftKey:Boolean;
     detail:number;
 }
 

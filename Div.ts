@@ -27,6 +27,7 @@ export class Map implements Base.Map
             map = this;
         
         this.selection
+            .on('dblclick.map', function() { mouse_ctrl.onDoubleclick() })
             .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
             .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
             .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });

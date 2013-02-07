@@ -453,7 +453,9 @@ var Map = (function () {
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
         var mouse_ctrl = this.mouse_ctrl, map = this;
-        this.selection.on('mousedown.map', function () {
+        this.selection.on('dblclick.map', function () {
+            mouse_ctrl.onDoubleclick();
+        }).on('mousedown.map', function () {
             mouse_ctrl.onMousedown();
         }).on('mousewheel.map', function () {
             mouse_ctrl.onMousewheel();
@@ -618,6 +620,11 @@ var Control = (function () {
     function Control(map) {
         this.map = map;
     }
+    Control.prototype.onDoubleclick = function () {
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), amount = d3.event.shiftKey ? -1 : 1;
+        this.map.grid.zoomByAbout(amount, anchor);
+        this.map.redraw();
+    };
     Control.prototype.onMousedown = function () {
         var control = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
         d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
@@ -639,12 +646,9 @@ var Control = (function () {
         };
     };
     Control.prototype.onMousewheel = function () {
-        var delta = Math.min(18 - this.map.grid.coord.zoom, Math.max(0 - this.map.grid.coord.zoom, this.d3_behavior_zoom_delta()));
-        if(delta != 0) {
-            var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]);
-            this.map.grid.zoomByAbout(delta, anchor);
-            this.map.redraw();
-        }
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]);
+        this.map.grid.zoomByAbout(this.d3_behavior_zoom_delta(), anchor);
+        this.map.redraw();
         d3.event.preventDefault();
         d3.event.stopPropagation();
     };
@@ -819,6 +823,8 @@ require.define("/Grid.js",function(require,module,exports,__dirname,__filename,p
 var Tile = require("./Tile")
 exports.TileSize = 256;
 exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
+var MinZoom = 0;
+var MaxZoom = 18;
 var Grid = (function () {
     function Grid(w, h, pyramid) {
         this.resize(w, h);
@@ -838,6 +844,11 @@ var Grid = (function () {
         var offset = new Core.Point(this.center.x * 2 - anchor.x, this.center.y * 2 - anchor.y), coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
         this.coord = coord;
         this.coord = this.coord.zoomBy(delta);
+        if(this.coord.zoom > MaxZoom) {
+            this.coord = this.coord.zoomTo(MaxZoom);
+        } else if(this.coord.zoom < MinZoom) {
+            this.coord = this.coord.zoomTo(MinZoom);
+        }
         this.coord = this.pointCoordinate(offset);
     };
     Grid.prototype.coordinatePoint = function (coord) {
@@ -890,7 +901,9 @@ var Map = (function () {
         this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         var mouse_ctrl = this.mouse_ctrl, map = this;
-        this.selection.on('mousedown.map', function () {
+        this.selection.on('dblclick.map', function () {
+            mouse_ctrl.onDoubleclick();
+        }).on('mousedown.map', function () {
             mouse_ctrl.onMousedown();
         }).on('mousewheel.map', function () {
             mouse_ctrl.onMousewheel();

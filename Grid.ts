@@ -1,8 +1,11 @@
 import Core = module('Core');
 import Tile = module('Tile');
 
-export var TileSize:number = 256;
-export var TileExp:number = Math.log(TileSize) / Math.log(2);
+export var TileSize = 256;
+export var TileExp = Math.log(TileSize) / Math.log(2);
+
+var MinZoom = 0;
+var MaxZoom = 18;
 
 export class Grid
 {
@@ -53,6 +56,13 @@ export class Grid
         
         // zoom the center coordinate
         this.coord = this.coord.zoomBy(delta);
+        
+        if(this.coord.zoom > MaxZoom) {
+            this.coord = this.coord.zoomTo(MaxZoom);
+        
+        } else if(this.coord.zoom < MinZoom) {
+            this.coord = this.coord.zoomTo(MinZoom);
+        }
         
         // move the wheeled-over coordinate back to where it was
         this.coord = this.pointCoordinate(offset);

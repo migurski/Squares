@@ -24,6 +24,17 @@ export class Control
     {
         this.map = map;
     }
+    
+    public onDoubleclick():void
+    {
+        var mouse = d3.mouse(this.map.parent),
+            anchor = new Core.Point(mouse[0], mouse[1]),
+            amount = d3.event.shiftKey ? -1 : 1;
+        
+        this.map.grid.zoomByAbout(amount, anchor);
+        this.map.redraw();
+        // d3.timer(redraw);
+    }
 
     public onMousedown():void
     {
@@ -66,18 +77,12 @@ export class Control
     
     public onMousewheel():void
     {
-        // 18 = max zoom, 0 = min zoom
-        var delta = Math.min(18 - this.map.grid.coord.zoom, Math.max(0 - this.map.grid.coord.zoom, this.d3_behavior_zoom_delta()));
-
-        if(delta != 0)
-        {
-            var mouse = d3.mouse(this.map.parent),
-                anchor = new Core.Point(mouse[0], mouse[1]);
-            
-            this.map.grid.zoomByAbout(delta, anchor);
-            this.map.redraw();
-            // d3.timer(redraw);
-        }
+        var mouse = d3.mouse(this.map.parent),
+            anchor = new Core.Point(mouse[0], mouse[1]);
+        
+        this.map.grid.zoomByAbout(this.d3_behavior_zoom_delta(), anchor);
+        this.map.redraw();
+        // d3.timer(redraw);
 
         d3.event.preventDefault();
         d3.event.stopPropagation();                        
