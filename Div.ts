@@ -20,7 +20,7 @@ export class Map implements Base.Map
         this.parent = parent;
         
         var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y);
+        this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         
         var mouse_ctrl = this.mouse_ctrl,

@@ -446,7 +446,7 @@ var Map = (function () {
         this.template = template;
         this.parent = parent;
         var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y);
+        this.grid = new Grid.Grid(size.x, size.y, 3);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
@@ -475,7 +475,7 @@ var Map = (function () {
     Map.prototype.redraw = function () {
         var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
         join.exit().each(this.tile_dequeuer).remove();
-        join.enter().append('img').attr('class', 'tile').attr('id', Map.tile_key).on('load', this.tile_onloaded).each(this.tile_queuer);
+        join.enter().append('img').attr('class', 'tile').attr('id', Map.tile_key).style('z-index', Map.tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
             this.selection.selectAll('img.tile').style(Tile.transform_property, Map.tile_xform);
         } else {
@@ -500,6 +500,9 @@ var Map = (function () {
     };
     Map.tile_xform = function tile_xform(tile) {
         return tile.transform();
+    };
+    Map.tile_zoom = function tile_zoom(tile) {
+        return tile.coord.zoom;
     };
     Map.prototype.getTileOnloaded = function () {
         var map = this;
@@ -564,6 +567,7 @@ var Queue = (function () {
         }
     };
     Queue.prototype.process = function () {
+        this.queue.sort(Request.compare);
         while(this.open_request_count < 8 && this.queue.length > 0) {
             var request = this.queue.shift(), loading = request.load();
             if(loading) {
@@ -578,6 +582,7 @@ var Queue = (function () {
 var Request = (function () {
     function Request(image, src) {
         this.id = image.id;
+        this.sort = parseInt(d3.select(image).style('z-index'));
         this.image = image;
         this.src = src;
     }
@@ -590,6 +595,9 @@ var Request = (function () {
             return true;
         }
         return false;
+    };
+    Request.compare = function compare(a, b) {
+        return b.sort - a.sort;
     };
     return Request;
 })();
@@ -812,8 +820,9 @@ var Tile = require("./Tile")
 exports.TileSize = 256;
 exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
 var Grid = (function () {
-    function Grid(w, h) {
+    function Grid(w, h, pyramid) {
         this.resize(w, h);
+        this.pyramid = pyramid;
     }
     Grid.prototype.roundCoord = function () {
         return this.coord.zoomTo(Math.round(this.coord.zoom));
@@ -843,11 +852,20 @@ var Grid = (function () {
         var round_coord = this.roundCoord(), tl = this.pointCoordinate(new Core.Point(0, 0)), br = this.pointCoordinate(new Core.Point(this.center.x * 2, this.center.y * 2));
         tl = tl.zoomTo(round_coord.zoom).container();
         br = br.zoomTo(round_coord.zoom).container();
-        var tiles = [];
+        var tiles = [], parents = {
+        };
         for(var i = tl.row; i <= br.row; i++) {
             for(var j = tl.column; j <= br.column; j++) {
                 var coord = new Core.Coordinate(i, j, round_coord.zoom);
                 tiles.push(new Tile.Tile(coord, this));
+                for(var k = coord.zoom - 1; k >= coord.zoom - this.pyramid && k >= 0; k--) {
+                    var parent = coord.zoomTo(k).container();
+                    if(parent.toString() in parents) {
+                        break;
+                    }
+                    parents[parent.toString()] = true;
+                    tiles.push(new Tile.Tile(parent, this));
+                }
             }
         }
         return tiles;
@@ -869,7 +887,7 @@ var Map = (function () {
         this.selection = d3.select(parent);
         this.parent = parent;
         var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y);
+        this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         var mouse_ctrl = this.mouse_ctrl, map = this;
         this.selection.on('mousedown.map', function () {

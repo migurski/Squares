@@ -9,9 +9,13 @@ export class Grid
     public coord:Core.Coordinate;
     public center:Core.Point;
     
-    constructor(w:number, h:number)
+    // How many extra zoom levels to return from visible_tiles().
+    private pyramid:number;
+    
+    constructor(w:number, h:number, pyramid:number)
     {
         this.resize(w, h);
+        this.pyramid = pyramid;
     }
     
     public roundCoord():Core.Coordinate
@@ -93,12 +97,33 @@ export class Grid
         //
         // generate visible tile coords.
         //
-        var tiles = [];
+        var tiles = [],
+            parents = {};
         
-        for(var i = tl.row; i <= br.row; i++) {
-            for(var j = tl.column; j <= br.column; j++) {
+        for(var i = tl.row; i <= br.row; i++)
+        {
+            for(var j = tl.column; j <= br.column; j++)
+            {
+                // add the coordinate to the list of visible tiles
                 var coord = new Core.Coordinate(i, j, round_coord.zoom);
                 tiles.push(new Tile.Tile(coord, this));
+                
+                //
+                // check parent tiles against pyramid level; maybe they should come too?
+                //
+                for(var k = coord.zoom - 1; k >= coord.zoom - this.pyramid && k >= 0; k--)
+                {
+                    var parent = coord.zoomTo(k).container();
+                    
+                    // stop me if you've heard this one...
+                    if(parent.toString() in parents)
+                    {
+                        break;
+                    }
+                    
+                    parents[parent.toString()] = true;
+                    tiles.push(new Tile.Tile(parent, this));
+                }
             }
         }
         

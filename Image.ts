@@ -30,7 +30,7 @@ export class Map implements Base.Map
         this.parent = parent;
         
         var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y);
+        this.grid = new Grid.Grid(size.x, size.y, 3);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
         
         this.queue = new Queue(this.loaded_tiles);
@@ -74,6 +74,7 @@ export class Map implements Base.Map
             .append('img')
             .attr('class', 'tile')
             .attr('id', Map.tile_key)
+            .style('z-index', Map.tile_zoom)
             .on('load', this.tile_onloaded)
             .each(this.tile_queuer);
         
@@ -99,6 +100,7 @@ export class Map implements Base.Map
     public static tile_width (tile:Tile.Tile):string { return tile.width()     }
     public static tile_height(tile:Tile.Tile):string { return tile.height()    }
     public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
+    public static tile_zoom  (tile:Tile.Tile):number { return tile.coord.zoom  }
     
    /**
     * Return a function usable in d3...on('load', ...).
@@ -247,6 +249,8 @@ class Queue
     */
     public process():void
     {
+        this.queue.sort(Request.compare);
+    
         while(this.open_request_count < 8 && this.queue.length > 0)
         {
             var request:Request = this.queue.shift(),
@@ -266,12 +270,15 @@ class Queue
 class Request
 {
     public id:string;
+    public sort:number;
+    
     private image:HTMLImageElement;
     private src:string;
 
     constructor(image:HTMLImageElement, src:string)
     {
         this.id = image.id;
+        this.sort = parseInt(d3.select(image).style('z-index'));
         this.image = image;
         this.src = src;
     }
@@ -298,5 +305,13 @@ class Request
         }
         
         return false;
+    }
+    
+   /**
+    * Function to help sort requests by .sort value, highest-to-lowest.
+    */
+    public static compare(a:Request, b:Request):number
+    {
+        return b.sort - a.sort;
     }
 }
