@@ -91,7 +91,7 @@ export class Grid
    /**
     * Retrieve a list of Tile objects covering the current visible area.
     */
-    public visible_tiles():Tile.Tile[]
+    public visibleTiles():Tile.Tile[]
     {
         //
         // find coordinate extents of grid, at a rounded zoom level.

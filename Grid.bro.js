@@ -479,7 +479,7 @@ var Map = (function () {
         return this.grid.coord.zoom;
     };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
+        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
         join.exit().each(this.tile_dequeuer).remove();
         join.enter().append('img').attr('class', 'tile').attr('id', Map.tile_key).style('z-index', Map.tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
@@ -863,7 +863,7 @@ var Grid = (function () {
         var x = point.x - this.center.x, y = point.y - this.center.y, pixel_center = this.coord.zoomBy(exports.TileExp), pixel_coord = pixel_center.right(x).down(y);
         return pixel_coord.zoomTo(this.coord.zoom);
     };
-    Grid.prototype.visible_tiles = function () {
+    Grid.prototype.visibleTiles = function () {
         var round_coord = this.roundCoord(), tl = this.pointCoordinate(new Core.Point(0, 0)), br = this.pointCoordinate(new Core.Point(this.center.x * 2, this.center.y * 2));
         tl = tl.zoomTo(round_coord.zoom).container();
         br = br.zoomTo(round_coord.zoom).container();
@@ -928,7 +928,7 @@ var Map = (function () {
         this.redraw();
     };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visible_tiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
+        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
         join.exit().remove();
         join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(Map.tile_key).attr('id', Map.tile_key);
         this.selection.selectAll('div.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);

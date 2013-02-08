@@ -50,7 +50,7 @@ export class Map implements Base.Map
     
     public redraw():void
     {
-        var tiles = this.grid.visible_tiles(),
+        var tiles = this.grid.visibleTiles(),
             join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
         
         join.exit()
