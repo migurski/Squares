@@ -711,7 +711,7 @@ var Control = (function () {
         } catch (error) {
             var delta = d3.event.wheelDelta || (-d3.event.detail * 5);
         }
-        return delta * 0.005;
+        return delta * 0.003;
     };
     return Control;
 })();

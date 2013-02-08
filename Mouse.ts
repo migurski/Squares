@@ -227,6 +227,6 @@ export class Control
             var delta:number = d3.event.wheelDelta || (-d3.event.detail * 5);
         }
         
-        return delta * .005;
+        return delta * .003;
     }          
 }
