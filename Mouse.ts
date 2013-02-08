@@ -92,18 +92,32 @@ function smother_event():void
 export class Control
 {
     private map:Base.Map;
+    private whole_zooms:Boolean;
     
     // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
     private d3_behavior_zoom_div:Node;
     
-    constructor(map:Base.Map)
+    constructor(map:Base.Map, whole_zooms:Boolean)
     {
         this.map = map;
+        this.whole_zooms = whole_zooms;
+    }
+    
+    private nextZoomIn():number
+    {
+        var zoom = this.map.grid.coord.zoom + 1;
+        return this.whole_zooms ? Math.round(zoom) : zoom;
+    }
+    
+    private nextZoomOut():number
+    {
+        var zoom = this.map.grid.coord.zoom - 1;
+        return this.whole_zooms ? Math.round(zoom) : zoom;
     }
     
     public onZoomin():void
     {
-        this.map.grid.zoomByAbout(1, this.map.grid.center);
+        this.map.grid.zoomToAbout(this.nextZoomIn(), this.map.grid.center);
         this.map.redraw();
         // d3.timer(redraw);
 
@@ -112,7 +126,7 @@ export class Control
     
     public onZoomout():void
     {
-        this.map.grid.zoomByAbout(-1, this.map.grid.center);
+        this.map.grid.zoomToAbout(this.nextZoomOut(), this.map.grid.center);
         this.map.redraw();
         // d3.timer(redraw);
 
@@ -123,9 +137,9 @@ export class Control
     {
         var mouse = d3.mouse(this.map.parent),
             anchor = new Core.Point(mouse[0], mouse[1]),
-            amount = d3.event.shiftKey ? -1 : 1;
+            target = d3.event.shiftKey ? this.nextZoomOut() : this.nextZoomIn();
         
-        this.map.grid.zoomByAbout(amount, anchor);
+        this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();
         // d3.timer(redraw);
     }
@@ -171,9 +185,10 @@ export class Control
     public onMousewheel():void
     {
         var mouse = d3.mouse(this.map.parent),
-            anchor = new Core.Point(mouse[0], mouse[1]);
+            anchor = new Core.Point(mouse[0], mouse[1]),
+            target = this.map.grid.coord.zoom + this.d3_behavior_zoom_delta();
         
-        this.map.grid.zoomByAbout(this.d3_behavior_zoom_delta(), anchor);
+        this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();
         // d3.timer(redraw);
 

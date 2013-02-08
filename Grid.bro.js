@@ -444,7 +444,7 @@ var Map = (function () {
         };
         this.template = template;
         this.parent = parent;
-        Mouse.link_control(this.selection, new Mouse.Control(this));
+        Mouse.link_control(this.selection, new Mouse.Control(this, true));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
@@ -648,22 +648,31 @@ function smother_event() {
     d3.event.stopPropagation();
 }
 var Control = (function () {
-    function Control(map) {
+    function Control(map, whole_zooms) {
         this.map = map;
+        this.whole_zooms = whole_zooms;
     }
+    Control.prototype.nextZoomIn = function () {
+        var zoom = this.map.grid.coord.zoom + 1;
+        return this.whole_zooms ? Math.round(zoom) : zoom;
+    };
+    Control.prototype.nextZoomOut = function () {
+        var zoom = this.map.grid.coord.zoom - 1;
+        return this.whole_zooms ? Math.round(zoom) : zoom;
+    };
     Control.prototype.onZoomin = function () {
-        this.map.grid.zoomByAbout(1, this.map.grid.center);
+        this.map.grid.zoomToAbout(this.nextZoomIn(), this.map.grid.center);
         this.map.redraw();
         smother_event();
     };
     Control.prototype.onZoomout = function () {
-        this.map.grid.zoomByAbout(-1, this.map.grid.center);
+        this.map.grid.zoomToAbout(this.nextZoomOut(), this.map.grid.center);
         this.map.redraw();
         smother_event();
     };
     Control.prototype.onDoubleclick = function () {
-        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), amount = d3.event.shiftKey ? -1 : 1;
-        this.map.grid.zoomByAbout(amount, anchor);
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = d3.event.shiftKey ? this.nextZoomOut() : this.nextZoomIn();
+        this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();
     };
     Control.prototype.onMousedown = function () {
@@ -686,8 +695,8 @@ var Control = (function () {
         };
     };
     Control.prototype.onMousewheel = function () {
-        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]);
-        this.map.grid.zoomByAbout(this.d3_behavior_zoom_delta(), anchor);
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.coord.zoom + this.d3_behavior_zoom_delta();
+        this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();
         smother_event();
     };
@@ -879,10 +888,10 @@ var Grid = (function () {
         var new_center = new Core.Point(this.center.x - x, this.center.y - y);
         this.coord = this.pointCoordinate(new_center);
     };
-    Grid.prototype.zoomByAbout = function (delta, anchor) {
+    Grid.prototype.zoomToAbout = function (zoom, anchor) {
         var offset = new Core.Point(this.center.x * 2 - anchor.x, this.center.y * 2 - anchor.y), coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
         this.coord = coord;
-        this.coord = this.coord.zoomBy(delta);
+        this.coord = this.coord.zoomTo(zoom);
         if(this.coord.zoom > MaxZoom) {
             this.coord = this.coord.zoomTo(MaxZoom);
         } else if(this.coord.zoom < MinZoom) {
@@ -935,7 +944,7 @@ var Map = (function () {
     function Map(parent, row, column, zoom) {
         this.selection = d3.select(parent);
         this.parent = parent;
-        Mouse.link_control(this.selection, new Mouse.Control(this));
+        Mouse.link_control(this.selection, new Mouse.Control(this, false));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);

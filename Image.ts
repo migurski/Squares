@@ -27,7 +27,7 @@ export class Map implements Base.Map
         this.template = template;
         this.parent = parent;
         
-        Mouse.link_control(this.selection, new Mouse.Control(this));
+        Mouse.link_control(this.selection, new Mouse.Control(this, true));
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);

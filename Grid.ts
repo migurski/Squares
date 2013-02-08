@@ -44,9 +44,9 @@ export class Grid
     }
     
    /**
-    * Zoom around a given anchor point by a specified amount.
+    * Zoom around a given anchor point to a specified level.
     */
-    public zoomByAbout(delta:number, anchor:Core.Point):void
+    public zoomToAbout(zoom:number, anchor:Core.Point):void
     {
         var offset = new Core.Point(this.center.x*2 - anchor.x, this.center.y*2 - anchor.y),
             coord = this.pointCoordinate(new Core.Point(anchor.x, anchor.y));
@@ -55,7 +55,7 @@ export class Grid
         this.coord = coord;
         
         // zoom the center coordinate
-        this.coord = this.coord.zoomBy(delta);
+        this.coord = this.coord.zoomTo(zoom);
         
         if(this.coord.zoom > MaxZoom) {
             this.coord = this.coord.zoomTo(MaxZoom);

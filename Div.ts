@@ -17,7 +17,7 @@ export class Map implements Base.Map
         this.selection = d3.select(parent);
         this.parent = parent;
         
-        Mouse.link_control(this.selection, new Mouse.Control(this));
+        Mouse.link_control(this.selection, new Mouse.Control(this, false));
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
