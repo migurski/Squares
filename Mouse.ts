@@ -15,10 +15,78 @@ export function element_size(element:HTMLElement):Core.Point
 
 export function link_control(selection:ID3Selection, control:Control):void
 {
-    selection.on('dblclick', function() { control.onDoubleclick() });
-    selection.on('mousedown', function() { control.onMousedown() });
-    selection.on('mousewheel', function() { control.onMousewheel() });
-    selection.on('DOMMouseScroll', function() { control.onMousewheel() });
+    //
+    // Set up zoom in/out buttons that look like Leaflet's.
+    //
+    var zoombox = selection.append('div'),
+        zoomout = add_button(zoombox),
+        zoom_in = add_button(zoombox);
+    
+    zoomout.style('margin-right', '5px');
+        
+    zoombox
+        .style('z-index', 99)
+        .style('position', 'absolute')
+        .style('padding', '5px')
+        .style('margin', '5px')
+        .style('background-color', 'rgba(0, 0, 0, .2)')
+        .style('border-radius', '6px');
+    
+    //
+    // Use base64-encoded data URI for +/- button images.
+    //
+    var png_prefix = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJAQMAAADaX5RTAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAEUlEQVQI12',
+        png_suffix = 'AAAAASUVORK5CYII=';
+    
+    zoom_in.append('img')
+          .style('display', 'block')
+          .style('pointer-events', 'none')
+          .attr('src', png_prefix+'N43MAAQXAAEwEAcZcIUxqnpLs'+png_suffix);
+        
+    zoomout.append('img')
+          .style('display', 'block')
+          .style('pointer-events', 'none')
+          .attr('src', png_prefix+'P438AAQXAAEwEAescI+0eupfw'+png_suffix);
+    
+    //
+    // Set up mouse event handlers
+    //
+    selection.on('dblclick.map', function() { control.onDoubleclick() });
+    selection.on('mousedown.map', function() { control.onMousedown() });
+    selection.on('mousewheel.map', function() { control.onMousewheel() });
+    selection.on('DOMMouseScroll.map', function() { control.onMousewheel() });
+    
+    zoom_in
+        .on('click.in', function() { control.onZoomin() })
+        .on('dblclick.in', smother_event);
+        
+    zoomout
+        .on('click.out', function() { control.onZoomout() })
+        .on('dblclick.out', smother_event);
+}
+
+function add_button(parent:ID3Selection):ID3Selection
+{
+    var button = parent.append('a');
+    
+    button
+        .style('display', 'block')
+        .style('float', 'left')
+        .style('cursor', 'pointer')
+        .style('padding', '7px')
+        .style('border-radius', '3px')
+        .style('background-color', 'white')
+        .style('opacity', .8)
+        .on('mouseover.button', function() { button.style('opacity', 1) })
+        .on('mouseout.button', function() { button.style('opacity', .8) });
+    
+    return button;
+}
+
+function smother_event():void
+{
+    d3.event.preventDefault();
+    d3.event.stopPropagation();                        
 }
 
 export class Control
@@ -31,6 +99,24 @@ export class Control
     constructor(map:Base.Map)
     {
         this.map = map;
+    }
+    
+    public onZoomin():void
+    {
+        this.map.grid.zoomByAbout(1, this.map.grid.center);
+        this.map.redraw();
+        // d3.timer(redraw);
+
+        smother_event();
+    }
+    
+    public onZoomout():void
+    {
+        this.map.grid.zoomByAbout(-1, this.map.grid.center);
+        this.map.redraw();
+        // d3.timer(redraw);
+
+        smother_event();
     }
     
     public onDoubleclick():void
@@ -53,8 +139,7 @@ export class Control
             .on('mousemove.map', this.getOnMousemove(start_mouse))
             .on('mouseup.map', function() { control.onMouseup() })
 
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
+        smother_event();
     }
     
     public onMouseup():void
@@ -92,8 +177,7 @@ export class Control
         this.map.redraw();
         // d3.timer(redraw);
 
-        d3.event.preventDefault();
-        d3.event.stopPropagation();                        
+        smother_event();
     }
 
     private d3_behavior_zoom_delta():number

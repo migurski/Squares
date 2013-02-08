@@ -608,21 +608,59 @@ function element_size(element) {
 }
 exports.element_size = element_size;
 function link_control(selection, control) {
-    selection.on('dblclick', function () {
+    var zoombox = selection.append('div'), zoomout = add_button(zoombox), zoom_in = add_button(zoombox);
+    zoomout.style('margin-right', '5px');
+    zoombox.style('z-index', 99).style('position', 'absolute').style('padding', '5px').style('margin', '5px').style('background-color', 'rgba(0, 0, 0, .2)').style('border-radius', '6px');
+    var png_prefix = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJAQMAAADaX5RTAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAEUlEQVQI12', png_suffix = 'AAAAASUVORK5CYII=';
+    zoom_in.append('img').style('display', 'block').style('pointer-events', 'none').attr('src', png_prefix + 'N43MAAQXAAEwEAcZcIUxqnpLs' + png_suffix);
+    zoomout.append('img').style('display', 'block').style('pointer-events', 'none').attr('src', png_prefix + 'P438AAQXAAEwEAescI+0eupfw' + png_suffix);
+    selection.on('dblclick.map', function () {
         control.onDoubleclick();
-    }).on('mousedown', function () {
+    });
+    selection.on('mousedown.map', function () {
         control.onMousedown();
-    }).on('mousewheel', function () {
-        control.onMousewheel();
-    }).on('DOMMouseScroll', function () {
+    });
+    selection.on('mousewheel.map', function () {
         control.onMousewheel();
     });
+    selection.on('DOMMouseScroll.map', function () {
+        control.onMousewheel();
+    });
+    zoom_in.on('click.in', function () {
+        control.onZoomin();
+    }).on('dblclick.in', smother_event);
+    zoomout.on('click.out', function () {
+        control.onZoomout();
+    }).on('dblclick.out', smother_event);
 }
 exports.link_control = link_control;
+function add_button(parent) {
+    var button = parent.append('a');
+    button.style('display', 'block').style('float', 'left').style('cursor', 'pointer').style('padding', '7px').style('border-radius', '3px').style('background-color', 'white').style('opacity', 0.8).on('mouseover.button', function () {
+        button.style('opacity', 1);
+    }).on('mouseout.button', function () {
+        button.style('opacity', 0.8);
+    });
+    return button;
+}
+function smother_event() {
+    d3.event.preventDefault();
+    d3.event.stopPropagation();
+}
 var Control = (function () {
     function Control(map) {
         this.map = map;
     }
+    Control.prototype.onZoomin = function () {
+        this.map.grid.zoomByAbout(1, this.map.grid.center);
+        this.map.redraw();
+        smother_event();
+    };
+    Control.prototype.onZoomout = function () {
+        this.map.grid.zoomByAbout(-1, this.map.grid.center);
+        this.map.redraw();
+        smother_event();
+    };
     Control.prototype.onDoubleclick = function () {
         var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), amount = d3.event.shiftKey ? -1 : 1;
         this.map.grid.zoomByAbout(amount, anchor);
@@ -633,8 +671,7 @@ var Control = (function () {
         d3.select(window).on('mousemove.map', this.getOnMousemove(start_mouse)).on('mouseup.map', function () {
             control.onMouseup();
         });
-        d3.event.preventDefault();
-        d3.event.stopPropagation();
+        smother_event();
     };
     Control.prototype.onMouseup = function () {
         d3.select(window).on('mousemove.map', null).on('mouseup.map', null);
@@ -652,8 +689,7 @@ var Control = (function () {
         var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]);
         this.map.grid.zoomByAbout(this.d3_behavior_zoom_delta(), anchor);
         this.map.redraw();
-        d3.event.preventDefault();
-        d3.event.stopPropagation();
+        smother_event();
     };
     Control.prototype.d3_behavior_zoom_delta = function () {
         if(!this.d3_behavior_zoom_div) {

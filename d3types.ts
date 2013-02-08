@@ -117,6 +117,8 @@ interface ID3Selection extends ID3Selectors {
     
     //
     each: (callback: (element: any, index: number) => void) => ID3Selection;
+    
+    transition: () => ID3Transition;
 }
 
 interface ID3EnterSelection {
@@ -295,6 +297,13 @@ interface ID3Event extends Event
     wheelDelta:number;
     shiftKey:Boolean;
     detail:number;
+}
+
+// Added parts of d3.transition tree.
+
+interface ID3Transition extends ID3Selection
+{
+    duration:(msec:number) => ID3Transition;
 }
 
 declare var d3: ID3Base;
