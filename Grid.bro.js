@@ -444,7 +444,7 @@ var Map = (function () {
         };
         this.template = template;
         this.parent = parent;
-        this.setup_mouse_control();
+        Mouse.link_control(this.selection, new Mouse.Control(this));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
@@ -457,19 +457,6 @@ var Map = (function () {
             map.update_gridsize();
         });
     }
-    Map.prototype.setup_mouse_control = function () {
-        var mouse_ctrl = new Mouse.Control(this);
-        this.selection.on('dblclick.map', function () {
-            mouse_ctrl.onDoubleclick();
-        }).on('mousedown.map', function () {
-            mouse_ctrl.onMousedown();
-        }).on('mousewheel.map', function () {
-            mouse_ctrl.onMousewheel();
-        }).on('DOMMouseScroll.map', function () {
-            mouse_ctrl.onMousewheel();
-        });
-        return mouse_ctrl;
-    };
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
@@ -620,6 +607,18 @@ function element_size(element) {
     return new Core.Point(element.clientWidth, element.clientHeight);
 }
 exports.element_size = element_size;
+function link_control(selection, control) {
+    selection.on('dblclick', function () {
+        control.onDoubleclick();
+    }).on('mousedown', function () {
+        control.onMousedown();
+    }).on('mousewheel', function () {
+        control.onMousewheel();
+    }).on('DOMMouseScroll', function () {
+        control.onMousewheel();
+    });
+}
+exports.link_control = link_control;
 var Control = (function () {
     function Control(map) {
         this.map = map;
@@ -900,7 +899,7 @@ var Map = (function () {
     function Map(parent, row, column, zoom) {
         this.selection = d3.select(parent);
         this.parent = parent;
-        this.setup_mouse_control();
+        Mouse.link_control(this.selection, new Mouse.Control(this));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
         this.grid.coord = new Core.Coordinate(row, column, zoom);
@@ -909,19 +908,6 @@ var Map = (function () {
             map.update_gridsize();
         });
     }
-    Map.prototype.setup_mouse_control = function () {
-        var mouse_ctrl = new Mouse.Control(this);
-        this.selection.on('dblclick.map', function () {
-            mouse_ctrl.onDoubleclick();
-        }).on('mousedown.map', function () {
-            mouse_ctrl.onMousedown();
-        }).on('mousewheel.map', function () {
-            mouse_ctrl.onMousewheel();
-        }).on('DOMMouseScroll.map', function () {
-            mouse_ctrl.onMousewheel();
-        });
-        return mouse_ctrl;
-    };
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);

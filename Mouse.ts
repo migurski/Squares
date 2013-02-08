@@ -13,6 +13,14 @@ export function element_size(element:HTMLElement):Core.Point
     return new Core.Point(element.clientWidth, element.clientHeight);
 }
 
+export function link_control(selection:ID3Selection, control:Control):void
+{
+    selection.on('dblclick', function() { control.onDoubleclick() });
+    selection.on('mousedown', function() { control.onMousedown() });
+    selection.on('mousewheel', function() { control.onMousewheel() });
+    selection.on('DOMMouseScroll', function() { control.onMousewheel() });
+}
+
 export class Control
 {
     private map:Base.Map;

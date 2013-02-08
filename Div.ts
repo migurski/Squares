@@ -17,7 +17,7 @@ export class Map implements Base.Map
         this.selection = d3.select(parent);
         this.parent = parent;
         
-        this.setup_mouse_control();
+        Mouse.link_control(this.selection, new Mouse.Control(this));
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
@@ -26,19 +26,6 @@ export class Map implements Base.Map
         var map = this;
         
         d3.select(window).on('resize.map', function() { map.update_gridsize() });
-    }
-    
-    private setup_mouse_control():Mouse.Control
-    {
-        var mouse_ctrl = new Mouse.Control(this);
-    
-        this.selection
-            .on('dblclick.map', function() { mouse_ctrl.onDoubleclick() })
-            .on('mousedown.map', function() { mouse_ctrl.onMousedown() })
-            .on('mousewheel.map', function() { mouse_ctrl.onMousewheel() })
-            .on('DOMMouseScroll.map', function() { mouse_ctrl.onMousewheel() });
-        
-        return mouse_ctrl;
     }
     
     private update_gridsize():void
