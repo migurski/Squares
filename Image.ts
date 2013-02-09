@@ -46,6 +46,9 @@ export class Map implements Base.Map
         var map = this;
         
         d3.select(window).on('resize.map', function() { map.update_gridsize() });
+        
+        this.selection.selectAll('img.tile').remove();
+        this.redraw();
     }
     
     private update_gridsize():void
@@ -70,7 +73,7 @@ export class Map implements Base.Map
     public redraw():void
     {
         var tiles = this.grid.visibleTiles(),
-            join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
+            join = this.selection.selectAll('img.tile').data(tiles, tile_key);
         
         join.exit()
             .each(this.tile_dequeuer)
@@ -79,34 +82,26 @@ export class Map implements Base.Map
         join.enter()
             .append('img')
             .attr('class', 'tile')
-            .attr('id', Map.tile_key)
-            .style('z-index', Map.tile_zoom)
+            .attr('id', tile_key)
+            .style('z-index', tile_zoom)
             .on('load', this.tile_onloaded)
             .each(this.tile_queuer);
         
         if(Tile.transform_property) {
             // Use CSS transforms if available.
             this.selection.selectAll('img.tile')
-                .style(Tile.transform_property, Map.tile_xform);
+                .style(Tile.transform_property, tile_xform);
 
         } else {
             this.selection.selectAll('img.tile')
-                .style('left', Map.tile_left)
-                .style('top', Map.tile_top)
-                .style('width', Map.tile_width)
-                .style('height', Map.tile_height);
+                .style('left', tile_left)
+                .style('top', tile_top)
+                .style('width', tile_width)
+                .style('height', tile_height);
         }
         
         this.queue.process();
     }
-    
-    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
-    public static tile_left  (tile:Tile.Tile):string { return tile.left()      }
-    public static tile_top   (tile:Tile.Tile):string { return tile.top()       }
-    public static tile_width (tile:Tile.Tile):string { return tile.width()     }
-    public static tile_height(tile:Tile.Tile):string { return tile.height()    }
-    public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
-    public static tile_zoom  (tile:Tile.Tile):number { return tile.coord.zoom  }
     
    /**
     * Return a function usable in d3...on('load', ...).
@@ -321,3 +316,14 @@ class Request
         return b.sort - a.sort;
     }
 }
+
+//
+// Pile of convenience functions for use in D3 callbacks.
+//
+function tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
+function tile_left  (tile:Tile.Tile):string { return tile.left()      }
+function tile_top   (tile:Tile.Tile):string { return tile.top()       }
+function tile_width (tile:Tile.Tile):string { return tile.width()     }
+function tile_height(tile:Tile.Tile):string { return tile.height()    }
+function tile_xform (tile:Tile.Tile):string { return tile.transform() }
+function tile_zoom  (tile:Tile.Tile):number { return tile.coord.zoom  }

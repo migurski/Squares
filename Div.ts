@@ -30,6 +30,9 @@ export class Map implements Base.Map
         var map = this;
         
         d3.select(window).on('resize.map', function() { map.update_gridsize() });
+        
+        this.selection.selectAll('div.tile').remove();
+        this.redraw();
     }
     
     private update_gridsize():void
@@ -54,7 +57,7 @@ export class Map implements Base.Map
     public redraw():void
     {
         var tiles = this.grid.visibleTiles(),
-            join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
+            join = this.selection.selectAll('div.tile').data(tiles, tile_key);
         
         join.exit()
             .remove();
@@ -64,20 +67,23 @@ export class Map implements Base.Map
             .attr('class', 'tile')
             .style('border-top', '1px solid pink')
             .style('border-left', '1px solid pink')
-            .text(Map.tile_key)
-            .attr('id', Map.tile_key);
+            .text(tile_key)
+            .attr('id', tile_key);
         
         this.selection.selectAll('div.tile')
-            .style('left', Map.tile_left)
-            .style('top', Map.tile_top)
-            .style('width', Map.tile_width)
-            .style('height', Map.tile_height);
+            .style('left', tile_left)
+            .style('top', tile_top)
+            .style('width', tile_width)
+            .style('height', tile_height);
     }
-    
-    public static tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
-    public static tile_left  (tile:Tile.Tile):string { return tile.left()      }
-    public static tile_top   (tile:Tile.Tile):string { return tile.top()       }
-    public static tile_width (tile:Tile.Tile):string { return tile.width()     }
-    public static tile_height(tile:Tile.Tile):string { return tile.height()    }
-    public static tile_xform (tile:Tile.Tile):string { return tile.transform() }
 }
+
+//
+// Pile of convenience functions for use in D3 callbacks.
+//
+function tile_key   (tile:Tile.Tile):string { return tile.toKey()     }
+function tile_left  (tile:Tile.Tile):string { return tile.left()      }
+function tile_top   (tile:Tile.Tile):string { return tile.top()       }
+function tile_width (tile:Tile.Tile):string { return tile.width()     }
+function tile_height(tile:Tile.Tile):string { return tile.height()    }
+function tile_xform (tile:Tile.Tile):string { return tile.transform() }

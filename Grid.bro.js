@@ -457,6 +457,8 @@ var Map = (function () {
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
         });
+        this.selection.selectAll('img.tile').remove();
+        this.redraw();
     }
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
@@ -473,36 +475,15 @@ var Map = (function () {
         return this.grid.coordinatePoint(coord);
     };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
+        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, tile_key);
         join.exit().each(this.tile_dequeuer).remove();
-        join.enter().append('img').attr('class', 'tile').attr('id', Map.tile_key).style('z-index', Map.tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
+        join.enter().append('img').attr('class', 'tile').attr('id', tile_key).style('z-index', tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
-            this.selection.selectAll('img.tile').style(Tile.transform_property, Map.tile_xform);
+            this.selection.selectAll('img.tile').style(Tile.transform_property, tile_xform);
         } else {
-            this.selection.selectAll('img.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
+            this.selection.selectAll('img.tile').style('left', tile_left).style('top', tile_top).style('width', tile_width).style('height', tile_height);
         }
         this.queue.process();
-    };
-    Map.tile_key = function tile_key(tile) {
-        return tile.toKey();
-    };
-    Map.tile_left = function tile_left(tile) {
-        return tile.left();
-    };
-    Map.tile_top = function tile_top(tile) {
-        return tile.top();
-    };
-    Map.tile_width = function tile_width(tile) {
-        return tile.width();
-    };
-    Map.tile_height = function tile_height(tile) {
-        return tile.height();
-    };
-    Map.tile_xform = function tile_xform(tile) {
-        return tile.transform();
-    };
-    Map.tile_zoom = function tile_zoom(tile) {
-        return tile.coord.zoom;
     };
     Map.prototype.getTileOnloaded = function () {
         var map = this;
@@ -601,6 +582,27 @@ var Request = (function () {
     };
     return Request;
 })();
+function tile_key(tile) {
+    return tile.toKey();
+}
+function tile_left(tile) {
+    return tile.left();
+}
+function tile_top(tile) {
+    return tile.top();
+}
+function tile_width(tile) {
+    return tile.width();
+}
+function tile_height(tile) {
+    return tile.height();
+}
+function tile_xform(tile) {
+    return tile.transform();
+}
+function tile_zoom(tile) {
+    return tile.coord.zoom;
+}
 
 });
 
@@ -966,6 +968,8 @@ var Map = (function () {
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
         });
+        this.selection.selectAll('div.tile').remove();
+        this.redraw();
     }
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
@@ -982,32 +986,32 @@ var Map = (function () {
         return this.grid.coordinatePoint(coord);
     };
     Map.prototype.redraw = function () {
-        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
+        var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('div.tile').data(tiles, tile_key);
         join.exit().remove();
-        join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(Map.tile_key).attr('id', Map.tile_key);
-        this.selection.selectAll('div.tile').style('left', Map.tile_left).style('top', Map.tile_top).style('width', Map.tile_width).style('height', Map.tile_height);
-    };
-    Map.tile_key = function tile_key(tile) {
-        return tile.toKey();
-    };
-    Map.tile_left = function tile_left(tile) {
-        return tile.left();
-    };
-    Map.tile_top = function tile_top(tile) {
-        return tile.top();
-    };
-    Map.tile_width = function tile_width(tile) {
-        return tile.width();
-    };
-    Map.tile_height = function tile_height(tile) {
-        return tile.height();
-    };
-    Map.tile_xform = function tile_xform(tile) {
-        return tile.transform();
+        join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(tile_key).attr('id', tile_key);
+        this.selection.selectAll('div.tile').style('left', tile_left).style('top', tile_top).style('width', tile_width).style('height', tile_height);
     };
     return Map;
 })();
 exports.Map = Map;
+function tile_key(tile) {
+    return tile.toKey();
+}
+function tile_left(tile) {
+    return tile.left();
+}
+function tile_top(tile) {
+    return tile.top();
+}
+function tile_width(tile) {
+    return tile.width();
+}
+function tile_height(tile) {
+    return tile.height();
+}
+function tile_xform(tile) {
+    return tile.transform();
+}
 
 });
 
