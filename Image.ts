@@ -101,6 +101,7 @@ export class Map implements Base.Map
             .attr('class', 'tile')
             .attr('id', tile_key)
             .style('z-index', tile_zoom)
+            .style('display', 'none')
             .on('load', this.tile_onloaded)
             .each(this.tile_queuer);
         
@@ -141,6 +142,7 @@ export class Map implements Base.Map
         */
         return function(tile:Tile.Tile, i:number)
         {
+            d3.select(this).style('display', 'block');
             map.loaded_tiles[this.src] = Date.now();
             map.queue.close(this);
             map.redraw(false);

@@ -486,7 +486,7 @@ var Map = (function () {
     Map.prototype.redraw = function (moved) {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, tile_key);
         join.exit().each(this.tile_dequeuer).remove();
-        join.enter().append('img').attr('class', 'tile').attr('id', tile_key).style('z-index', tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
+        join.enter().append('img').attr('class', 'tile').attr('id', tile_key).style('z-index', tile_zoom).style('display', 'none').on('load', this.tile_onloaded).each(this.tile_queuer);
         if(Tile.transform_property) {
             this.selection.selectAll('img.tile').style(Tile.transform_property, tile_xform);
         } else {
@@ -500,6 +500,7 @@ var Map = (function () {
     Map.prototype.getTileOnloaded = function () {
         var map = this;
         return function (tile, i) {
+            d3.select(this).style('display', 'block');
             map.loaded_tiles[this.src] = Date.now();
             map.queue.close(this);
             map.redraw(false);
