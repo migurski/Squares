@@ -4,6 +4,7 @@ import Base = module('Base');
 import Core = module('Core');
 import Tile = module('Tile');
 import Grid = module('Grid');
+import Geo = module('Geo');
 
 export class Map implements Base.Map
 {
@@ -20,7 +21,7 @@ export class Map implements Base.Map
     private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
     private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
     
-    constructor(parent:HTMLElement, template:string, row:number, column:number, zoom:number)
+    constructor(parent:HTMLElement, template:string, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
     {
         this.selection = d3.select(parent);
         this.loaded_tiles = {};
@@ -31,7 +32,7 @@ export class Map implements Base.Map
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
-        this.grid.coord = new Core.Coordinate(row, column, zoom);
+        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
         
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();

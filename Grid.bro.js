@@ -434,11 +434,12 @@ process.binding = function (name) {
 
 require.define("/Image.js",function(require,module,exports,__dirname,__filename,process,global){var Mouse = require("./Mouse")
 var Base = require("./Base")
-var Core = require("./Core")
+
 var Tile = require("./Tile")
 var Grid = require("./Grid")
+
 var Map = (function () {
-    function Map(parent, template, row, column, zoom) {
+    function Map(parent, template, proj, loc, zoom) {
         this.selection = d3.select(parent);
         this.loaded_tiles = {
         };
@@ -447,7 +448,7 @@ var Map = (function () {
         Mouse.link_control(this.selection, new Mouse.Control(this, true));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 3);
-        this.grid.coord = new Core.Coordinate(row, column, zoom);
+        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
@@ -937,17 +938,18 @@ exports.Grid = Grid;
 
 require.define("/Div.js",function(require,module,exports,__dirname,__filename,process,global){var Mouse = require("./Mouse")
 var Base = require("./Base")
-var Core = require("./Core")
+
 var Grid = require("./Grid")
 
+
 var Map = (function () {
-    function Map(parent, row, column, zoom) {
+    function Map(parent, proj, loc, zoom) {
         this.selection = d3.select(parent);
         this.parent = parent;
         Mouse.link_control(this.selection, new Mouse.Control(this, false));
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
-        this.grid.coord = new Core.Coordinate(row, column, zoom);
+        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
         var map = this;
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
@@ -988,20 +990,62 @@ exports.Map = Map;
 
 });
 
+require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+var Location = (function () {
+    function Location(lat, lon) {
+        this.lat = lat;
+        this.lon = lon;
+    }
+    Location.prototype.toString = function () {
+        return "(" + this.lat.toFixed(6) + ", " + this.lon.toFixed(6) + ")";
+    };
+    return Location;
+})();
+exports.Location = Location;
+var π = Math.PI;
+var Mercator = (function () {
+    function Mercator() {
+    }
+    Mercator.prototype.project = function (loc) {
+        var λ = π * loc.lon / 180, φ = π * loc.lat / 180;
+        var x = λ, y = Math.log(Math.tan(π / 4 + φ / 2));
+        return new Core.Point(x, y);
+    };
+    Mercator.prototype.inverse = function (point) {
+        var λ = point.x, φ = 2 * Math.atan(Math.exp(point.y)) - π / 2;
+        var lat = 180 * φ / π, lon = 180 * λ / π;
+        return new Location(lat, lon);
+    };
+    Mercator.prototype.locationCoordinate = function (loc, zoom) {
+        if (typeof zoom === "undefined") { zoom = 0; }
+        var p = this.project(loc), col = (p.x + π) / (2 * π), row = (π - p.y) / (2 * π);
+        return new Core.Coordinate(row, col, 0).zoomTo(zoom);
+    };
+    Mercator.prototype.coordinateLocation = function (coord) {
+        var coord = coord.zoomTo(0), x = (coord.column * 2 * π) - π, y = π - (coord.row * 2 * π);
+        return this.inverse(new Core.Point(x, y));
+    };
+    return Mercator;
+})();
+exports.Mercator = Mercator;
+
+});
+
 require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
 var Div = require("./Div")
+var Geo = require("./Geo")
 var sorry_docbody_safari5 = 'Sorry, for the moment I can’t figure out how to make the mousewheel work in Safari 5.0 when the parent element is the document body. Try making your parent element a DIV?';
-function makeImgMap(parent, template, row, column, zoom) {
+function makeImgMap(parent, template, lat, lon, zoom) {
     if(parent == document.body) {
         throw Error(sorry_docbody_safari5);
     }
-    return new Image.Map(parent, template, row, column, zoom);
+    return new Image.Map(parent, template, new Geo.Mercator(), new Geo.Location(lat, lon), zoom);
 }
-function makeDivMap(parent, row, column, zoom) {
+function makeDivMap(parent, lat, lon, zoom) {
     if(parent == document.body) {
         throw Error(sorry_docbody_safari5);
     }
-    return new Div.Map(parent, row, column, zoom);
+    return new Div.Map(parent, new Geo.Mercator(), new Geo.Location(lat, lon), zoom);
 }
 window['makeImgMap'] = makeImgMap;
 window['makeDivMap'] = makeDivMap;

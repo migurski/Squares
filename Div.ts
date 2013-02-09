@@ -4,6 +4,7 @@ import Base = module('Base');
 import Core = module('Core');
 import Grid = module('Grid');
 import Tile = module('Tile');
+import Geo = module('Geo');
 
 export class Map implements Base.Map
 {
@@ -12,7 +13,7 @@ export class Map implements Base.Map
 
     private selection:ID3Selection;
 
-    constructor(parent:HTMLElement, row:number, column:number, zoom:number)
+    constructor(parent:HTMLElement, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
     {
         this.selection = d3.select(parent);
         this.parent = parent;
@@ -21,7 +22,7 @@ export class Map implements Base.Map
         
         var size = Mouse.element_size(this.parent);
         this.grid = new Grid.Grid(size.x, size.y, 0);
-        this.grid.coord = new Core.Coordinate(row, column, zoom);
+        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
         
         var map = this;
         
