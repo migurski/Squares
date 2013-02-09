@@ -1039,8 +1039,7 @@ function tile_xform(tile) {
 
 });
 
-require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){
-var Core = require("./Core")
+require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
 var Location = (function () {
     function Location(lat, lon) {
         this.lat = lat;

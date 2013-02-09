@@ -26,7 +26,10 @@ function makeDivMap(parent:HTMLElement, lat:number, lon:number, zoom:number):Div
 
 window['pocketsquares'] = {
     makeImgMap: makeImgMap,
-    makeDivMap: makeDivMap
+    makeDivMap: makeDivMap,
+    Geo: {
+        Mercator: Geo.Mercator
+        }
     };
 
 if(window['ps'] == undefined)

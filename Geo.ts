@@ -1,5 +1,18 @@
 import Core = module('Core');
 
+export interface Projection
+{
+    project(loc:Location):Core.Point;
+    inverse(point:Core.Point):Location;
+    
+    locationCoordinate: {
+        (loc:Location):Core.Coordinate;
+        (loc:Location, zoom:number):Core.Coordinate;
+    };
+
+    coordinateLocation(coord:Core.Coordinate):Location;
+}
+
 /**
  * Location class stores latitude and longitude in degrees.
  */
@@ -28,7 +41,7 @@ var π = Math.PI;
  *
  * See also http://mathworld.wolfram.com/MercatorProjection.html
  */
-export class Mercator
+export class Mercator implements Projection
 {
     constructor()
     {

@@ -21,10 +21,10 @@ export class Map implements Base.Map
     private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
     private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
 
-    private projection:Geo.Mercator;
+    private projection:Geo.Projection;
     private moved_callback:()=>void;
     
-    constructor(parent:HTMLElement, template:string, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
+    constructor(parent:HTMLElement, template:string, proj:Geo.Projection, loc:Geo.Location, zoom:number)
     {
         this.selection = d3.select(parent);
         this.loaded_tiles = {};

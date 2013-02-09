@@ -12,10 +12,10 @@ export class Map implements Base.Map
     public parent:HTMLElement;
 
     private selection:ID3Selection;
-    private projection:Geo.Mercator;
+    private projection:Geo.Projection;
     private moved_callback:()=>void;
 
-    constructor(parent:HTMLElement, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
+    constructor(parent:HTMLElement, proj:Geo.Projection, loc:Geo.Location, zoom:number)
     {
         this.selection = d3.select(parent);
         this.parent = parent;
