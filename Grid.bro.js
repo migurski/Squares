@@ -1046,8 +1046,13 @@ function makeDivMap(parent, lat, lon, zoom) {
     }
     return new Div.Map(parent, new Geo.Mercator(), new Geo.Location(lat, lon), zoom);
 }
-window['makeImgMap'] = makeImgMap;
-window['makeDivMap'] = makeDivMap;
+window['pocketsquares'] = {
+    makeImgMap: makeImgMap,
+    makeDivMap: makeDivMap
+};
+if(window['ps'] == undefined) {
+    window['ps'] = window['pocketsquares'];
+}
 
 });
 require("/Map.js");

@@ -45,12 +45,12 @@
     <!--
     
         /*
-        var map = makeImgMap(document.getElementById('map'),
-                             'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
-                             1582, 656, 12);
+        var map = ps.makeDivMap(document.getElementById('map'), 1582, 656, 12);
         */
 
-        var map = makeDivMap(document.getElementById('map'), 1582, 656, 12);
+        var map = ps.makeImgMap(document.getElementById('map'),
+                                'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
+                                37.8575, -122.3437, 12);
 
         map.redraw();
     
