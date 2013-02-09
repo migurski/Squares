@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>New Newness</title>
+    <title>I Miss Getlatlon.com</title>
     <script src="http://d3js.org/d3.v2.min.js"></script>
     <script src="Grid.bro.js"></script>
+    <link rel="stylesheet" href="http://www.openstreetmap.us/~migurski/style.css" />
     <style title="text/css">
     <!--
     
         #map
         {
-            border: 1px solid pink;
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
             width: 100%;
             height: 350px;
 
@@ -31,35 +33,66 @@
             #map-center img
             {
                 position: absolute;
+                pointer-events: none;
                 top: -16px;
                 left: -16px;
             }
         
-        body
-        {
-            overflow: hidden;
-        }
+            img.tile,
+            div.tile
+            {
+                display: block;
+                position: absolute;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                -webkit-transform-origin: 0px 0px;
+            }
         
-        img.tile,
-        div.tile
-        {
-            display: block;
-            position: absolute;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            -webkit-transform-origin: 0px 0px;
-        }
-    
     -->
     </style>
 </head>
 <body>
+    <p>
+        I miss getlatlon.com.
+    </p>
     <div id="map">
         <div id="map-center"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAMAAABgOjJdAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAHUlEQVR42mJgRAMMowKjAkgChMFoiI0K4BEACDAAyNoEAWlto/IAAAAASUVORK5CYII="></div>
     </div>
+    <pre id="info">
+        
+    </pre>
     <script type="application/javascript">
     <!--
+    
+        var info = document.getElementById('info');
+    
+        function update_info(map)
+        {
+            var zoom = map.grid.zoom(),
+                digits = Math.round(Math.log(1 << zoom + 8) / Math.log(10)),
+                latlon_digits = Math.max(0, digits - 2),
+                mercator_digits = Math.max(0, digits - 7),
+                round = (Math.round(zoom) == zoom),
+                merc = new ps.Geo.Mercator(),
+                loc = map.pointLocation(),
+                lat = loc.lat.toFixed(latlon_digits),
+                lon = loc.lon.toFixed(latlon_digits),
+                point = merc.project(loc),
+                x = (6378137 * point.x).toFixed(mercator_digits),
+                y = (6378137 * point.y).toFixed(mercator_digits),
+                coord = merc.locationCoordinate(loc).zoomTo(Math.round(zoom)).container(),
+                lines = [
+                    'Lat, lon: ' + [lat, lon].join(', '),
+                    'Mercator: ' + [x, y].join(', '),
+                    '    Zoom: ' + zoom.toFixed(0) + (round ? '' : ' (' + zoom.toFixed(2) + ')'),
+                    '    Tile: ' + [coord.zoom, coord.column, coord.row].join('/'),
+                    '   WKT’s: POINT (' + [lon, lat].join(' ') + ')',
+                    '          POINT (' + [x, y].join(' ') + ')',
+                    ]
+            
+            info.innerText = lines.join('\n');
+        }
     
         /*
         var map = ps.makeDivMap(document.getElementById('map'), 37.804319, -122.271210, 12);
@@ -69,7 +102,8 @@
                                 'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
                                 37.804319, -122.271210, 12);
 
-        
+        map.onMoved(update_info);
+        update_info(map);
     
     //-->
     </script>
