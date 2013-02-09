@@ -12,6 +12,7 @@ export class Map implements Base.Map
     public parent:HTMLElement;
 
     private selection:ID3Selection;
+    private projection:Geo.Mercator;
 
     constructor(parent:HTMLElement, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
     {
@@ -24,6 +25,7 @@ export class Map implements Base.Map
             coord = proj.locationCoordinate(loc).zoomTo(zoom);
 
         this.grid = new Grid.Grid(size.x, size.y, coord, 0);
+        this.projection = proj;
         
         var map = this;
         
@@ -35,6 +37,18 @@ export class Map implements Base.Map
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
         this.redraw();
+    }
+    
+    public pointLocation(point:Core.Point=null):Geo.Location
+    {
+        var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
+        return this.projection.coordinateLocation(coord);
+    }
+    
+    public locationPoint(loc:Geo.Location):Core.Point
+    {
+        var coord = this.projection.locationCoordinate(loc);
+        return this.grid.coordinatePoint(coord);
     }
     
     public redraw():void

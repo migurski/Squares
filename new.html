@@ -20,6 +20,21 @@
             padding: 0;
         }
         
+        #map-center
+        {
+            z-index: 99;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+        }
+            
+            #map-center img
+            {
+                position: absolute;
+                top: -16px;
+                left: -16px;
+            }
+        
         body
         {
             overflow: hidden;
@@ -40,17 +55,19 @@
     </style>
 </head>
 <body>
-    <div id="map"></div>
+    <div id="map">
+        <div id="map-center"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAMAAABgOjJdAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAHUlEQVR42mJgRAMMowKjAkgChMFoiI0K4BEACDAAyNoEAWlto/IAAAAASUVORK5CYII="></div>
+    </div>
     <script type="application/javascript">
     <!--
     
         /*
-        var map = ps.makeDivMap(document.getElementById('map'), 1582, 656, 12);
+        var map = ps.makeDivMap(document.getElementById('map'), 37.804319, -122.271210, 12);
         */
 
         var map = ps.makeImgMap(document.getElementById('map'),
                                 'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
-                                37.8575, -122.3437, 12);
+                                37.804319, -122.271210, 12);
 
         map.redraw();
     

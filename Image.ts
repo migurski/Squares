@@ -20,6 +20,8 @@ export class Map implements Base.Map
     private tile_queuer:(tile:Tile.Tile, index:number)=>void;
     private tile_dequeuer:(tile:Tile.Tile, index:number)=>void;
     private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
+
+    private projection:Geo.Mercator;
     
     constructor(parent:HTMLElement, template:string, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
     {
@@ -34,6 +36,7 @@ export class Map implements Base.Map
             coord = proj.locationCoordinate(loc).zoomTo(zoom);
 
         this.grid = new Grid.Grid(size.x, size.y, coord, 3);
+        this.projection = proj;
 
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
@@ -50,6 +53,18 @@ export class Map implements Base.Map
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
         this.redraw();
+    }
+    
+    public pointLocation(point:Core.Point=null):Geo.Location
+    {
+        var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
+        return this.projection.coordinateLocation(coord);
+    }
+    
+    public locationPoint(loc:Geo.Location):Core.Point
+    {
+        var coord = this.projection.locationCoordinate(loc);
+        return this.grid.coordinatePoint(coord);
     }
     
     public redraw():void

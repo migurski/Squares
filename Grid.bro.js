@@ -448,6 +448,7 @@ var Map = (function () {
         Mouse.link_control(this.selection, new Mouse.Control(this, true));
         var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
         this.grid = new Grid.Grid(size.x, size.y, coord, 3);
+        this.projection = proj;
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
@@ -461,6 +462,15 @@ var Map = (function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
         this.redraw();
+    };
+    Map.prototype.pointLocation = function (point) {
+        if (typeof point === "undefined") { point = null; }
+        var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
+        return this.projection.coordinateLocation(coord);
+    };
+    Map.prototype.locationPoint = function (loc) {
+        var coord = this.projection.locationCoordinate(loc);
+        return this.grid.coordinatePoint(coord);
     };
     Map.prototype.redraw = function () {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
@@ -775,6 +785,8 @@ exports.Coordinate = Coordinate;
 
 require.define("/Base.js",function(require,module,exports,__dirname,__filename,process,global){
 
+
+
 });
 
 require.define("/Tile.js",function(require,module,exports,__dirname,__filename,process,global){
@@ -949,6 +961,7 @@ var Map = (function () {
         Mouse.link_control(this.selection, new Mouse.Control(this, false));
         var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
         this.grid = new Grid.Grid(size.x, size.y, coord, 0);
+        this.projection = proj;
         var map = this;
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
@@ -958,6 +971,15 @@ var Map = (function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
         this.redraw();
+    };
+    Map.prototype.pointLocation = function (point) {
+        if (typeof point === "undefined") { point = null; }
+        var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
+        return this.projection.coordinateLocation(coord);
+    };
+    Map.prototype.locationPoint = function (loc) {
+        var coord = this.projection.locationCoordinate(loc);
+        return this.grid.coordinatePoint(coord);
     };
     Map.prototype.redraw = function () {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('div.tile').data(tiles, Map.tile_key);
