@@ -30,10 +30,11 @@ export class Map implements Base.Map
         
         Mouse.link_control(this.selection, new Mouse.Control(this, true));
         
-        var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y, 3);
-        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
-        
+        var size = Mouse.element_size(this.parent),
+            coord = proj.locationCoordinate(loc).zoomTo(zoom);
+
+        this.grid = new Grid.Grid(size.x, size.y, coord, 3);
+
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();

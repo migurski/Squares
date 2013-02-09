@@ -446,9 +446,8 @@ var Map = (function () {
         this.template = template;
         this.parent = parent;
         Mouse.link_control(this.selection, new Mouse.Control(this, true));
-        var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y, 3);
-        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
+        var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
+        this.grid = new Grid.Grid(size.x, size.y, coord, 3);
         this.queue = new Queue(this.loaded_tiles);
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
@@ -875,8 +874,9 @@ exports.TileExp = Math.log(exports.TileSize) / Math.log(2);
 var MinZoom = 0;
 var MaxZoom = 18;
 var Grid = (function () {
-    function Grid(w, h, pyramid) {
+    function Grid(w, h, coord, pyramid) {
         this.resize(w, h);
+        this.coord = coord;
         this.pyramid = pyramid;
     }
     Grid.prototype.roundCoord = function () {
@@ -947,9 +947,8 @@ var Map = (function () {
         this.selection = d3.select(parent);
         this.parent = parent;
         Mouse.link_control(this.selection, new Mouse.Control(this, false));
-        var size = Mouse.element_size(this.parent);
-        this.grid = new Grid.Grid(size.x, size.y, 0);
-        this.grid.coord = proj.locationCoordinate(loc).zoomTo(zoom);
+        var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
+        this.grid = new Grid.Grid(size.x, size.y, coord, 0);
         var map = this;
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();

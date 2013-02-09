@@ -15,9 +15,10 @@ export class Grid
     // How many extra zoom levels to return from visible_tiles().
     private pyramid:number;
     
-    constructor(w:number, h:number, pyramid:number)
+    constructor(w:number, h:number, coord:Core.Coordinate, pyramid:number)
     {
         this.resize(w, h);
+        this.coord = coord;
         this.pyramid = pyramid;
     }
     
