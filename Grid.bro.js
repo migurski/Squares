@@ -458,12 +458,12 @@ var Map = (function () {
             map.update_gridsize();
         });
         this.selection.selectAll('img.tile').remove();
-        this.redraw();
+        this.redraw(false);
     }
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
-        this.redraw();
+        this.redraw(true);
     };
     Map.prototype.pointLocation = function (point) {
         if (typeof point === "undefined") { point = null; }
@@ -474,7 +474,16 @@ var Map = (function () {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
     };
-    Map.prototype.redraw = function () {
+    Map.prototype.onMoved = function (callback) {
+        var map = this, before = this.moved_callback;
+        this.moved_callback = function () {
+            if(before) {
+                before();
+            }
+            callback(map);
+        };
+    };
+    Map.prototype.redraw = function (moved) {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, tile_key);
         join.exit().each(this.tile_dequeuer).remove();
         join.enter().append('img').attr('class', 'tile').attr('id', tile_key).style('z-index', tile_zoom).on('load', this.tile_onloaded).each(this.tile_queuer);
@@ -483,6 +492,9 @@ var Map = (function () {
         } else {
             this.selection.selectAll('img.tile').style('left', tile_left).style('top', tile_top).style('width', tile_width).style('height', tile_height);
         }
+        if(moved && this.moved_callback) {
+            this.moved_callback();
+        }
         this.queue.process();
     };
     Map.prototype.getTileOnloaded = function () {
@@ -490,7 +502,7 @@ var Map = (function () {
         return function (tile, i) {
             map.loaded_tiles[this.src] = Date.now();
             map.queue.close(this);
-            map.redraw();
+            map.redraw(false);
         };
     };
     Map.prototype.getTileQueuer = function () {
@@ -671,18 +683,18 @@ var Control = (function () {
     };
     Control.prototype.onZoomin = function () {
         this.map.grid.zoomToAbout(this.nextZoomIn(), this.map.grid.center);
-        this.map.redraw();
+        this.map.redraw(true);
         smother_event();
     };
     Control.prototype.onZoomout = function () {
         this.map.grid.zoomToAbout(this.nextZoomOut(), this.map.grid.center);
-        this.map.redraw();
+        this.map.redraw(true);
         smother_event();
     };
     Control.prototype.onDoubleclick = function () {
         var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = d3.event.shiftKey ? this.nextZoomOut() : this.nextZoomIn();
         this.map.grid.zoomToAbout(target, anchor);
-        this.map.redraw();
+        this.map.redraw(true);
     };
     Control.prototype.onMousedown = function () {
         var control = this, start_mouse = new Core.Point(d3.event.pageX, d3.event.pageY);
@@ -699,14 +711,14 @@ var Control = (function () {
         return function () {
             var curr = new Core.Point(d3.event.pageX, d3.event.pageY), dx = curr.x - prev.x, dy = curr.y - prev.y;
             map.grid.panBy(dx, dy);
-            map.redraw();
+            map.redraw(true);
             prev = curr;
         };
     };
     Control.prototype.onMousewheel = function () {
         var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
         this.map.grid.zoomToAbout(target, anchor);
-        this.map.redraw();
+        this.map.redraw(true);
         smother_event();
     };
     Control.prototype.d3_behavior_zoom_delta = function () {
@@ -969,12 +981,12 @@ var Map = (function () {
             map.update_gridsize();
         });
         this.selection.selectAll('div.tile').remove();
-        this.redraw();
+        this.redraw(false);
     }
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
-        this.redraw();
+        this.redraw(true);
     };
     Map.prototype.pointLocation = function (point) {
         if (typeof point === "undefined") { point = null; }
@@ -985,11 +997,23 @@ var Map = (function () {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
     };
-    Map.prototype.redraw = function () {
+    Map.prototype.onMoved = function (callback) {
+        var map = this, before = this.moved_callback;
+        this.moved_callback = function () {
+            if(before) {
+                before();
+            }
+            callback(map);
+        };
+    };
+    Map.prototype.redraw = function (moved) {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('div.tile').data(tiles, tile_key);
         join.exit().remove();
         join.enter().append('div').attr('class', 'tile').style('border-top', '1px solid pink').style('border-left', '1px solid pink').text(tile_key).attr('id', tile_key);
         this.selection.selectAll('div.tile').style('left', tile_left).style('top', tile_top).style('width', tile_width).style('height', tile_height);
+        if(moved && this.moved_callback) {
+            this.moved_callback();
+        }
     };
     return Map;
 })();
@@ -1015,7 +1039,8 @@ function tile_xform(tile) {
 
 });
 
-require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){
+var Core = require("./Core")
 var Location = (function () {
     function Location(lat, lon) {
         this.lat = lat;
@@ -1074,7 +1099,10 @@ function makeDivMap(parent, lat, lon, zoom) {
 }
 window['pocketsquares'] = {
     makeImgMap: makeImgMap,
-    makeDivMap: makeDivMap
+    makeDivMap: makeDivMap,
+    Geo: {
+        Mercator: Geo.Mercator
+    }
 };
 if(window['ps'] == undefined) {
     window['ps'] = window['pocketsquares'];

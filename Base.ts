@@ -6,8 +6,9 @@ export interface Map
 {
     grid:Grid.Grid;
     parent:HTMLElement;
-    redraw():void;
+    redraw(moved:Boolean):void;
 
     pointLocation(point:Core.Point):Geo.Location;
     locationPoint(loc:Geo.Location):Core.Point;
+    onMoved(callback:(map:Map)=>void):void;
 }

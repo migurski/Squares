@@ -22,6 +22,7 @@ export class Map implements Base.Map
     private tile_onloaded:(tile:Tile.Tile, index:number)=>void;
 
     private projection:Geo.Mercator;
+    private moved_callback:()=>void;
     
     constructor(parent:HTMLElement, template:string, proj:Geo.Mercator, loc:Geo.Location, zoom:number)
     {
@@ -48,14 +49,14 @@ export class Map implements Base.Map
         d3.select(window).on('resize.map', function() { map.update_gridsize() });
         
         this.selection.selectAll('img.tile').remove();
-        this.redraw();
+        this.redraw(false);
     }
     
     private update_gridsize():void
     {
         var size = Mouse.element_size(this.parent);
         this.grid.resize(size.x, size.y);
-        this.redraw();
+        this.redraw(true);
     }
     
     public pointLocation(point:Core.Point=null):Geo.Location
@@ -70,7 +71,23 @@ export class Map implements Base.Map
         return this.grid.coordinatePoint(coord);
     }
     
-    public redraw():void
+    public onMoved(callback:(map:Base.Map)=>void):void
+    {
+        var map = this,
+            before = this.moved_callback;
+        
+        this.moved_callback = function()
+        {
+            if(before)
+            {
+                before();
+            }
+
+            callback(map);
+        }
+    }
+    
+    public redraw(moved:Boolean):void
     {
         var tiles = this.grid.visibleTiles(),
             join = this.selection.selectAll('img.tile').data(tiles, tile_key);
@@ -100,6 +117,11 @@ export class Map implements Base.Map
                 .style('height', tile_height);
         }
         
+        if(moved && this.moved_callback)
+        {
+            this.moved_callback();
+        }
+        
         this.queue.process();
     }
     
@@ -121,7 +143,7 @@ export class Map implements Base.Map
         {
             map.loaded_tiles[this.src] = Date.now();
             map.queue.close(this);
-            map.redraw();
+            map.redraw(false);
         }
     }
     

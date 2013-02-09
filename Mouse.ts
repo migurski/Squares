@@ -118,8 +118,7 @@ export class Control
     public onZoomin():void
     {
         this.map.grid.zoomToAbout(this.nextZoomIn(), this.map.grid.center);
-        this.map.redraw();
-        // d3.timer(redraw);
+        this.map.redraw(true);
 
         smother_event();
     }
@@ -127,8 +126,7 @@ export class Control
     public onZoomout():void
     {
         this.map.grid.zoomToAbout(this.nextZoomOut(), this.map.grid.center);
-        this.map.redraw();
-        // d3.timer(redraw);
+        this.map.redraw(true);
 
         smother_event();
     }
@@ -140,8 +138,7 @@ export class Control
             target = d3.event.shiftKey ? this.nextZoomOut() : this.nextZoomIn();
         
         this.map.grid.zoomToAbout(target, anchor);
-        this.map.redraw();
-        // d3.timer(redraw);
+        this.map.redraw(true);
     }
 
     public onMousedown():void
@@ -175,8 +172,7 @@ export class Control
                 dy = curr.y - prev.y;
 
             map.grid.panBy(dx, dy);
-            map.redraw();
-            // d3.timer(redraw);
+            map.redraw(true);
             
             prev = curr;
         }
@@ -189,8 +185,7 @@ export class Control
             target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
         
         this.map.grid.zoomToAbout(target, anchor);
-        this.map.redraw();
-        // d3.timer(redraw);
+        this.map.redraw(true);
 
         smother_event();
     }
