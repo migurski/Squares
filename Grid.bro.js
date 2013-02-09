@@ -462,9 +462,6 @@ var Map = (function () {
         this.grid.resize(size.x, size.y);
         this.redraw();
     };
-    Map.prototype.zoom = function () {
-        return this.grid.coord.zoom;
-    };
     Map.prototype.redraw = function () {
         var tiles = this.grid.visibleTiles(), join = this.selection.selectAll('img.tile').data(tiles, Map.tile_key);
         join.exit().each(this.tile_dequeuer).remove();
@@ -653,11 +650,11 @@ var Control = (function () {
         this.whole_zooms = whole_zooms;
     }
     Control.prototype.nextZoomIn = function () {
-        var zoom = this.map.grid.coord.zoom + 1;
+        var zoom = this.map.grid.zoom() + 1;
         return this.whole_zooms ? Math.round(zoom) : zoom;
     };
     Control.prototype.nextZoomOut = function () {
-        var zoom = this.map.grid.coord.zoom - 1;
+        var zoom = this.map.grid.zoom() - 1;
         return this.whole_zooms ? Math.round(zoom) : zoom;
     };
     Control.prototype.onZoomin = function () {
@@ -695,7 +692,7 @@ var Control = (function () {
         };
     };
     Control.prototype.onMousewheel = function () {
-        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.coord.zoom + this.d3_behavior_zoom_delta();
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
         this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();
         smother_event();
@@ -810,15 +807,15 @@ var Tile = (function () {
         return Math.round(point.y) + 'px';
     };
     Tile.prototype.width = function () {
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
         return Math.ceil(scale * Grid.TileSize) + 'px';
     };
     Tile.prototype.height = function () {
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
         return Math.ceil(scale * Grid.TileSize) + 'px';
     };
     Tile.prototype.transform = function () {
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
         if(scale * Grid.TileSize % 1) {
             scale += (1 - scale * Grid.TileSize % 1) / Grid.TileSize;
         }
@@ -879,6 +876,9 @@ var Grid = (function () {
         this.coord = coord;
         this.pyramid = pyramid;
     }
+    Grid.prototype.zoom = function () {
+        return this.coord.zoom;
+    };
     Grid.prototype.roundCoord = function () {
         return this.coord.zoomTo(Math.round(this.coord.zoom));
     };

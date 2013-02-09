@@ -9,9 +9,11 @@ var MaxZoom = 18;
 
 export class Grid
 {
-    public coord:Core.Coordinate;
     public center:Core.Point;
     
+    // Coordinate at the center point of this grid.
+    private coord:Core.Coordinate;
+
     // How many extra zoom levels to return from visible_tiles().
     private pyramid:number;
     
@@ -22,6 +24,14 @@ export class Grid
         this.pyramid = pyramid;
     }
     
+    public zoom():number
+    {
+        return this.coord.zoom;
+    }
+    
+   /**
+    * Get the center coordinate rounded to a whole-numbered zoom.
+    */
     public roundCoord():Core.Coordinate
     {
         return this.coord.zoomTo(Math.round(this.coord.zoom));

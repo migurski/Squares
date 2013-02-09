@@ -105,13 +105,13 @@ export class Control
     
     private nextZoomIn():number
     {
-        var zoom = this.map.grid.coord.zoom + 1;
+        var zoom = this.map.grid.zoom() + 1;
         return this.whole_zooms ? Math.round(zoom) : zoom;
     }
     
     private nextZoomOut():number
     {
-        var zoom = this.map.grid.coord.zoom - 1;
+        var zoom = this.map.grid.zoom() - 1;
         return this.whole_zooms ? Math.round(zoom) : zoom;
     }
     
@@ -186,7 +186,7 @@ export class Control
     {
         var mouse = d3.mouse(this.map.parent),
             anchor = new Core.Point(mouse[0], mouse[1]),
-            target = this.map.grid.coord.zoom + this.d3_behavior_zoom_delta();
+            target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
         
         this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw();

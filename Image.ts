@@ -52,11 +52,6 @@ export class Map implements Base.Map
         this.redraw();
     }
     
-    public zoom():number
-    {
-        return this.grid.coord.zoom;
-    }
-    
     public redraw():void
     {
         var tiles = this.grid.visibleTiles(),

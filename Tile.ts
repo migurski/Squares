@@ -33,8 +33,8 @@ export class Tile
         return Math.round(point.x) + 'px'; 
     
         /*
-        var scale = Math.pow(2, grid.coord.zoom - this.coord.zoom),
-            power = Math.pow(2, this.coord.zoom - grid.roundCoord().zoom),
+        var scale = Math.pow(2, grid.zoom() - this.zoom()),
+            power = Math.pow(2, this.zoom() - grid.roundCoord().zoom),
             centerCol = grid.roundCoord().column * power;
         return Math.round(grid.center.x + (this.coord.column - centerCol) * Grid.TileSize * scale) + 'px'; 
         */
@@ -51,8 +51,8 @@ export class Tile
         return Math.round(point.y) + 'px'; 
     
         /*
-        var scale = Math.pow(2, grid.coord.zoom - this.coord.zoom),
-            power = Math.pow(2, this.coord.zoom - grid.roundCoord().zoom),
+        var scale = Math.pow(2, grid.zoom() - this.zoom()),
+            power = Math.pow(2, this.zoom() - grid.roundCoord().zoom),
             centerRow = grid.roundCoord().row * power;
         return Math.round(grid.center.y + (this.coord.row - centerRow) * Grid.TileSize * scale) + 'px'; 
         */
@@ -65,7 +65,7 @@ export class Tile
     */
     public width():string
     {
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
         return Math.ceil(scale * Grid.TileSize)+'px'; 
     }
 
@@ -76,7 +76,7 @@ export class Tile
     */
     public height():string
     { 
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
         return Math.ceil(scale * Grid.TileSize)+'px'; 
     }          
     
@@ -87,7 +87,7 @@ export class Tile
     */
     public transform():string
     {
-        var scale = Math.pow(2, this.grid.coord.zoom - this.coord.zoom);
+        var scale = Math.pow(2, this.grid.zoom() - this.coord.zoom);
 
         // adjust to nearest whole pixel scale (thx @tmcw)
         if(scale * Grid.TileSize % 1) {
