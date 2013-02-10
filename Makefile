@@ -6,13 +6,16 @@ Grid.min.js: Grid.bro.js
 	     -so Grid.min.js \
 	     http://closure-compiler.appspot.com/compile
 
-Grid.bro.js: d3types.ts \
-	         Base.ts Core.ts Geo.ts Grid.ts Mouse.ts Hash.ts Map.ts Tile.ts Image.ts Div.ts
+Grid.bro.js: src/d3types.ts \
+	         src/Base.ts src/Core.ts src/Geo.ts src/Grid.ts src/Mouse.ts \
+	         src/Hash.ts src/Map.ts src/Tile.ts src/Image.ts src/Div.ts
 
-	tsc --out . Base.ts Core.ts Geo.ts Grid.ts Mouse.ts Hash.ts Map.ts Tile.ts Image.ts Div.ts
-	browserify -o Grid.bro.js --exports require Map.js
+	tsc --out src src/Base.ts src/Core.ts src/Geo.ts src/Grid.ts src/Mouse.ts \
+	              src/Hash.ts src/Map.ts src/Tile.ts src/Image.ts src/Div.ts
+	browserify -o Grid.bro.js --exports require src/Map.js
 	if [ `which dos2unix` ]; then dos2unix -q Grid.bro.js; fi
 
 clean:
-	rm -f Base.js Core.js Geo.js Grid.js Mouse.js Hash.js Map.js Tile.js Image.js Div.js
+	rm -f src/Base.js src/Core.js src/Geo.js src/Grid.js src/Mouse.js
+	rm -f src/Hash.js src/Map.js src/Tile.js src/Image.js src/Div.js
 	rm -f Grid.min.js
