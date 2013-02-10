@@ -1,49 +1,45 @@
-About the TypeScript Thing
---------------------------
+Squares
+=======
 
-This branch of D3 Map is an attempt to tie [D3](http://d3js.org) to
-Microsoft’s [TypeScript](http://www.typescriptlang.org) to see if they can
-play well together. I’ve only just learned half of this stuff earlier today,
-but I’m really enjoying the contrast between the two environments.
+Squares is a small, extensible, [free and open-source](LICENSE) library for
+in-browser maps, written in [Typescript](http://www.typescriptlang.org/) and
+using [D3](http://d3js.org/) under the hood.
 
-`new.html` is the place to check the output, `Grid.bro.js` is the compiled
-code run through [browserify](http://browserify.org).
+Squares is an adaptation of [Bloom Studio’s D3Map](https://github.com/bloomtime/d3map#readme),
+written by Tom Carden and ported to Typescript by [Michal Migurski](http://mike.teczno.com).
 
-Tom Carden’s Original Notes
----------------------------
+Why
+---
 
-An exercise in learning D3 for DOM manipulation and transitions. Still just an engine demo. Needs more features to be a full map library. Consider this my (@RandomEtc) hat in the ring for what comes after Modest Maps JS and Polymaps.
+Although D3 includes [a plug-in tile implementation](https://github.com/d3/d3-plugins/tree/master/geo/tile),
+I believe that a complete library should include a first class tile layer
+and coordinate data model. I’m also interested in how the tile layer abstraction
+can be adapted to non-image tiles, especially with new browser technologies
+like WebGL. At Stamen, we experimented with an earlier version of this library
+and interactions with WebGL in the [Burning Map project](http://maps.stamen.com/burningmap/#14/37.8089/-122.2642).
+Squares is a more formal library built on this idea, and includes a traditional
+image-based map as well as a `DIV`-only map demonstrating non-image uses.
 
-Features:
+Why Not
+-------
 
-* seam-free panning and zooming of tiled maps/images
-* use of CSS transforms where available
-* smooth fading in/out when tiles are loaded/removed
-* smooth mouse-wheeling with D3's normalized mouse-wheel delta
-* wrap around panning horizontally
-* doesn't load images above/below the mercator square limit
-* uses browser cache rather than handling cache internally
+If you’re interested in traditional image-tiled maps, an extensive plug-in
+ecosystem and user community, complete documentation and a stable API, then
+Squares is probably not for you. Consider [Modest Maps](http://modestmaps.com/)
+or [Leaflet](http://leafletjs.com/) for your lightweight mapping needs.
 
-TODO:
+About D3 and Typescript
+-----------------------
 
-* geo projections
-* zoom to lat/lon
-* animation, momentum for scrolling
-* mobile support
-* non-full-screen map support
-* support more than one map per page
-* layers and overlays
-* basic UI
-* more mouse/touch handlers
-* browser testing
+D3.js is a JavaScript library for manipulating documents based on data. D3
+helps you bring data to life using HTML, SVG and CSS. D3’s emphasis on web
+standards gives you the full capabilities of modern browsers without tying
+yourself to a proprietary framework, combining powerful visualization
+components and a data-driven approach to DOM manipulation.
 
-There is no plan to implement these things in any specific order or on any particular schedule. Please only use this library if you are interested in hacking on it from the beginning. Other libraries are much more fully featured. See http://groups.google.com/group/d3-js/browse_thread/thread/e0243bb66a438be1 for further discussion.
+Learn more at [d3js.org](http://d3js.org).
 
-Uses CSS (3D) transforms where available, falls back to normal CSS if not. Coordinate and tile positioning logic cribbed from Modest Maps. Most of the work is done by D3. Queueing img requests seems overkill but smooths things out a lot.
+TypeScript is a language for application-scale JavaScript development.
+TypeScript is a typed superset of JavaScript that compiles to plain JavaScript.
 
-(C) 2011 Bloom Studio, Inc. 
-
-Distributed under the same BSD license as D3 itself, see LICENSE.
-
-Contributions welcome!
-
+Learn more at [typescriptlang.org](http://typescriptlang.org).
