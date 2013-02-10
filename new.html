@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>I Miss Getlatlon.com</title>
     <script src="http://d3js.org/d3.v2.min.js"></script>
-    <script src="Grid.bro.js"></script>
+    <script src="Squares.bro.js"></script>
     <link rel="stylesheet" href="http://www.openstreetmap.us/~migurski/style.css" />
     <style title="text/css">
     <!--
@@ -98,7 +98,7 @@
                 latlon_digits = Math.max(0, digits - 2),
                 mercator_digits = Math.max(0, digits - 7),
                 round = (Math.round(zoom) == zoom),
-                merc = new ps.Geo.Mercator(),
+                merc = new sq.Geo.Mercator(),
                 loc = map.pointLocation(),
                 lat = loc.lat.toFixed(latlon_digits),
                 lon = loc.lon.toFixed(latlon_digits),
@@ -120,10 +120,10 @@
         }
     
         /*
-        var map = ps.makeDivMap(document.getElementById('map'), 37.804319, -122.271210, 12);
+        var map = sq.makeDivMap(document.getElementById('map'), 37.804319, -122.271210, 12);
         */
 
-        var map = ps.makeImgMap(document.getElementById('map'),
+        var map = sq.makeImgMap(document.getElementById('map'),
                                 'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
                                 37.804319, -122.271210, 12);
 

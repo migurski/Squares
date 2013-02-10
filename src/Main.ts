@@ -24,7 +24,7 @@ function makeDivMap(parent:HTMLElement, lat:number, lon:number, zoom:number):Div
     return new Div.Map(parent, new Geo.Mercator(), new Geo.Location(lat, lon), zoom);
 }
 
-window['pocketsquares'] = {
+window['squares'] = {
     makeImgMap: makeImgMap,
     makeDivMap: makeDivMap,
     Geo: {
@@ -32,7 +32,7 @@ window['pocketsquares'] = {
         }
     };
 
-if(window['ps'] == undefined)
+if(window['sq'] == undefined)
 {
-    window['ps'] = window['pocketsquares'];
+    window['sq'] = window['squares'];
 }

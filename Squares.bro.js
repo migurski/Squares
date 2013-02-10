@@ -1147,7 +1147,7 @@ function tile_xform(tile) {
 
 });
 
-require.define("/Map.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
+require.define("/Main.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
 var Div = require("./Div")
 var Geo = require("./Geo")
 var sorry_docbody_safari5 = 'Sorry, for the moment I can’t figure out how to make the mousewheel work in Safari 5.0 when the parent element is the document body. Try making your parent element a DIV?';
@@ -1163,16 +1163,16 @@ function makeDivMap(parent, lat, lon, zoom) {
     }
     return new Div.Map(parent, new Geo.Mercator(), new Geo.Location(lat, lon), zoom);
 }
-window['pocketsquares'] = {
+window['squares'] = {
     makeImgMap: makeImgMap,
     makeDivMap: makeDivMap,
     Geo: {
         Mercator: Geo.Mercator
     }
 };
-if(window['ps'] == undefined) {
-    window['ps'] = window['pocketsquares'];
+if(window['sq'] == undefined) {
+    window['sq'] = window['squares'];
 }
 
 });
-require("/Map.js");
+require("/Main.js");
