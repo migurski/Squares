@@ -1,568 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <title>Map Tiles in D3</title>
-        <!-- An exercise in learning D3 for DOM manipulation and transitions.
-             Uses CSS (3D) transforms where available, falls back to normal CSS if not.
-             Coordinate and tile positioning logic cribbed from Modest Maps. 
-             A two day hack... Doubtless still glitches to be ironed out!
-             No projections, no layers, no double click, no touching, no overlays.
-             Queueing img requests seems overkill but smooths things out a lot.
-             (C) 2011 Tom Carden, released under the same BSD license as D3 itself: 
-             https://github.com/mbostock/d3/blob/master/LICENSE
-             Forks welcome! -->
-        <script src="http://mbostock.github.com/d3/d3.min.js"></script>
-        <script type="text/javascript">
+<head>
+    <meta charset="utf-8" />
+    <title>Get Lat+Lon with Squares</title>
+    <script src="Squares-D3-0.0.1.min.js"></script>
+    <link rel="stylesheet" href="http://www.openstreetmap.us/~migurski/style.css" />
+    <style title="text/css">
+    <!--
+    
+        #map
+        {
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
+            width: 100%;
+            height: 420px;
+
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
         
-            // borrowed from Modest Maps, inspired by LeafletJS
-            var transformProperty = (function(props) {
-                var style = document.documentElement.style;
-                for (var i = 0; i < props.length; i++) {
-                    if (props[i] in style) {
-                        return props[i];
-                    }
-                }
-                return false;
-            })(['transform', '-webkit-transform', '-o-transform', '-moz-transform', '-ms-transform']);
-
-            var matrixString = (function() {
-                if (('WebKitCSSMatrix' in window) && ('m11' in new WebKitCSSMatrix())) {
-                    return function(scale,x,y,cx,cy) {
-                        scale = scale || 1;
-                        return 'translate3d(' + [ x, y, '0px' ].join('px,') + ') scale3d(' + [ scale,scale,1 ].join(',') + ')';
-/*                        return 'matrix3d(' +
-                            [ scale, '0,0,0,0',
-                              scale, '0,0,0,0,1,0',
-                              (x + ((cx * scale) - cx)).toFixed(4),
-                              (y + ((cy * scale) - cy)).toFixed(4),
-                              '0,1'].join(',') + ')'; */
-                    }
-                } else {
-                    return function(scale,x,y,cx,cy) {
-                        var unit = (transformProperty == 'MozTransform') ? 'px' : '';
-                        return 'matrix(' +
-                            [(scale || '1'), 0, 0,
-                            (scale || '1'),
-                            (x + ((cx * scale) - cx)) + unit,
-                            (y + ((cy * scale) - cy)) + unit
-                            ].join(',') + ')';
-                    }
-                }
-            })();
-
-            // make a tile provider that knows how to wrap tiles around the world
-            function provider(tile) {
-                var c = {r: tile.r, c: tile.c, z: tile.z};
-                var minCol = 0, 
-                    maxCol = Math.pow(2,tile.z);                        
-                while (c.c < minCol) c.c += maxCol;
-                while (c.c >= maxCol) c.c -= maxCol;
-                var z = c.z, x = c.c, y = c.r;
-                return 'http://otile1.mqcdn.com/tiles/1.0.0/osm/'+z+'/'+x+'/'+y+'.jpg';
+        #map-center
+        {
+            z-index: 99;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+        }
+            
+            #map-center img,
+            #map-center #vertical-rule,
+            #map-center #horizontal-rule
+            {
+                position: absolute;
+                pointer-events: none;
+            }
+        
+            #map-center img
+            {
+                top: -8px;
+                left: -8px;
+            }
+        
+            #map-center #vertical-rule
+            {
+                border-left: 1px solid rgba(0, 0, 0, .1);
+                height: 420px;
+                top: -210px;
+            }
+        
+            #map-center #horizontal-rule
+            {
+                border-top: 1px solid rgba(0, 0, 0, .1);
+                width: 1350px;
+                left: -675px;
+            }
+        
+            img.tile,
+            div.tile
+            {
+                display: block;
+                position: absolute;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                -webkit-transform-origin: 0px 0px;
             }
             
-           /**
-            * Closure for a single queue.
-            *
-            * loadedTiles is an object: [src] --> msec when load completed.
-            *
-            * Returns an object with addTo, removeFrom, removeOpen,
-            * and process functions attached.
-            */
-            function Queue(coord, loadedTiles)
-            {
-                var queue = [],
-                    queueById = {},
-                    numOpenRequests = 0,
-                    requestById = {};
-                
-               /**
-                * Called with selection.each(), this == <img>.
-                */
-                function addTo(tile, i)
-                {
-                    var src = provider(tile);
-                    if (src in loadedTiles) {
-                        // if we've seen it this session the browser cache probably has it                    
-                        d3.select(this).attr("src", src);
-                    } else {
-                        var item = { id: this.id, img: this };
-                        queue.push(item);
-                        queueById[item.id] = item;
-                    }
-                }
+        #info1
+        {
+            float: left;
+        }
     
-               /**
-                * Called with selection.each(), this == <img>.
-                */
-                function removeFrom(tile, i)
-                {
-                    // attempt to cancel loading for incomplete tiles
-                    // and prevent very large/tiny tiles from being scaled
-                    // (remove these immediately so they don't slow down positioning)
-                    if (!this.complete || (coord.z - tile.z > 5) || (tile.z - coord.z > 2)) {
-                        this.src = null;
-                        d3.select(this).remove();
-                    }
-                    // also clear the open request
-                    removeOpen(this);
-                    // and mark the image null in the queue so it will be skipped
-                    var item = queueById[this.id];
-                    if (item) {
-                        item.img = null;
-                        delete queueById[this.id];
-                    }
-                }
+        #info1, #info2
+        {
+            width: 20em;
+        }
     
-               /**
-                * Called when tiles are complete /or/ canceled.
-                */
-                function removeOpen(img)
-                {
-                    var request = requestById[img.id];
-                    if (request) {
-                        request.img = null;
-                        delete requestById[img.id];
-                        numOpenRequests--;
-                    }            
-                }
-                
-               /**
-                * Request up to 8 things from the queue, skipping blank items.
-                */
-                function process()
-                {
-                    while (numOpenRequests < 8 && queue.length > 0) {
-                        var request = queue.shift();
-                        if (request.img && request.img.parentNode) {
-                            // luckily there's a magic mapping inside d3
-                            // that knows how to pass the correct data to provider()
-                            d3.select(request.img) 
-                                .attr("src", provider);
-                            requestById[request.id] = request; 
-                            numOpenRequests++;
-                        }
-                        delete queueById[request.id];                        
-                    }
-                }
-                
-                return {addTo: addTo, removeFrom: removeFrom, removeOpen: removeOpen, process: process};
-            };
-            
-            // ----- Tile Positioning Functions
-            
-            // ----- end Tile Positioning Functions
-            
-           /**
-            * Collection of static functions for operating on coordinates.
-            *
-            * Coordinates are simple objects with three properties:
-            * "r" (row), "c" (column), and "z" (zoom).
-            */
-            var Coordinates = {
-            
-               /**
-                * Return a new coordinate, zoomed by the given amount.
-                */
-                zoomedBy: function(c, dz)
-                {
-                    var power = Math.pow(2, dz);
-                    return {c: c.c * power, r: c.r * power, z: c.z + dz};
-                },
-                
-               /**
-                * Return a new coordinate, offset by the given coordinate.
-                */
-                offsetBy: function(c, o)
-                {
-                    return {c: c.c + o.c, r: c.r + o.r, z: c.z + o.z};
-                },
-                
-               /**
-                * Return a new round-number coordinate containing the given coordinate.
-                */
-                container: function(c)
-                {
-                    c = Coordinates.zoomedBy(c, Math.round(c.z) - c.z);
-                    return {c: Math.floor(c.c), r: Math.floor(c.r), z: c.z};
-                }
-            
-            };
-            
-            function Grid(parent)
-            {
-                var coord = {c: 2, r: 2, z: 2}, // col, row, zoom
-                    roundCoord = null,          // coord at an integer zoom level
-                    tileSize = {w: 256, h: 256},// px
-                    loadedTiles = {},           // [src] --> millis when load completed
-                    w = window.innerWidth,
-                    h = window.innerHeight,
-                    center = {x: w/2, y: h/2 }; // center of map in pixels
-                    
-                var map = d3.select(parent),
-                    queue = Queue(coord, loadedTiles);
-                
-                d3.timer(redraw);
-                
-                map.on('mousedown.map', onMouseDown)
-                   .on('mousewheel.map', onWheel)
-                   .on('DOMMouseScroll.map', onWheel);
-                
-                d3.select(window).on('resize.map', onResize);
+    -->
+    </style>
+</head>
+<body>
+    <h1>Get Lat+Lon</h1>
+    <div id="map">
+        <div id="map-center">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARAQMAAAABo9W5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAEklEQVQI12P4X9/AgA+DAAE1AEQwH+EzObtuAAAAAElFTkSuQmCC">
+            <div id="vertical-rule"> </div>
+            <div id="horizontal-rule"> </div>
+        </div>
+    </div>
+    <pre id="info1"></pre>
+    <pre id="info2"></pre>
+    <p>
+        Find geographic coordinates for any place on earth, in degrees latitude
+        and longitude, spherical mercator meters, and web slippy map tiles.
+    </p>
+    <p>
+        Map tiles courtesy of <a href="http://www.mapquest.com/">MapQuest</a>
+        <img width="16" height="16" alt="" style="margin-top: -6px;" src="http://developer.mapquest.com/content/osm/mq_logo.png">.
+    </p>
+    <p>
+        I miss getlatlon.com.
+    </p>
+    <script type="application/javascript">
+    <!--
     
-               /**
-                * Return CSS left property value for a tile.
-                *
-                * Remove Math.round() for greater accuracy but visible seams
-                */
-                function left(tile)
-                { 
-                    var scale = Math.pow(2, coord.z - tile.z),
-                        power = Math.pow(2, tile.z - roundCoord.z),
-                        centerCol = roundCoord.c * power;
-                    return Math.round(center.x + (tile.c - centerCol) * tileSize.w * scale) + 'px'; 
-                }
-
-               /**
-                * Return CSS top property value for a tile.
-                *
-                * Remove Math.round() for greater accuracy but visible seams
-                */
-                function top(tile)
-                { 
-                    var scale = Math.pow(2, coord.z - tile.z),
-                        power = Math.pow(2, tile.z - roundCoord.z),
-                        centerRow = roundCoord.r * power;
-                    return Math.round(center.y + (tile.r - centerRow) * tileSize.h * scale) + 'px'; 
-                }
-
-               /**
-                * Return CSS width property value for a tile.
-                *
-                * Remove Math.ceil() for greater accuracy but visible seams
-                */
-                function width(tile)
-                {
-                    var scale = Math.pow(2, coord.z - tile.z);
-                    return Math.ceil(scale * tileSize.w)+'px'; 
-                }
-
-               /**
-                * Return CSS height property value for a tile.
-                *
-                * Remove Math.ceil() for greater accuracy but visible seams
-                */
-                function height(tile)
-                { 
-                    var scale = Math.pow(2, coord.z - tile.z);
-                    return Math.ceil(scale * tileSize.h)+'px'; 
-                }          
-                
-               /**
-                * Return CSS transform property value for a tile.
-                *
-                * For 3D webkit mode
-                */
-                function transform(tile)
-                {
-                    var scale = Math.pow(2, coord.z - tile.z);
-                    // adjust to nearest whole pixel scale (thx @tmcw)
-                    if (scale * tileSize.w % 1) {
-                        scale += (1 - scale * tileSize.w % 1) / tileSize.w;
-                    }                
-                    var zoomedCoord = Coordinates.zoomedBy(roundCoord, tile.z - roundCoord.z),
-                        x = Math.round(center.x + (tile.c - zoomedCoord.c) * tileSize.w * scale),
-                        y = Math.round(center.y + (tile.r - zoomedCoord.r) * tileSize.h * scale);
-                    return matrixString(scale, x, y, tileSize.w/2.0, tileSize.h/2.0);
-                }
-                
-               /**
-                * Called with selection.on(), this == <img>.
-                */
-                function onTileLoaded(tile)
-                {
-                    loadedTiles[this.src] = Date.now();
-                    
-                    d3.select(this)
-                      .style("display", "block")
-                      .style("opacity", 0.0)
-                        .transition()
-                          .duration(250)
-                            .style("opacity", 1.0);
-
-                    queue.removeOpen(this);
-                    // request redraw (which will also check queue)
-                    d3.timer(redraw,50); // TODO: only remove compensation tiles for this tile instead of a full redraw
-                }
-                
-                    // don't show above/below the poles
-                function validCoordinateFilter(tile)
-                {
-                    var minRow = 0, 
-                        maxRow = Math.pow(2, tile.z);                    
-
-                    return minRow <= tile.r && tile.r < maxRow;                
-                }
-                
-                function loadedLongAgo()
-                {
-                    return (this.src in loadedTiles) && (Date.now() - loadedTiles[this.src] > 500);
-                }
-
-                function redraw()
-                {
-                    // apply coord limits
-                    if (coord.z > 18) {
-                        coord = Coordinates.zoomedBy(coord, 18-coord.z);
-                    } else if (coord.z < 0) {
-                        coord = Coordinates.zoomedBy(coord, -coord.z);
-                    }
-                    
-                    // find coordinate extents of map
-                    var tl = Coordinates.offsetBy(coord, {c: -center.x / tileSize.w, r: -center.y / tileSize.h, z: 0}),
-                        br = Coordinates.offsetBy(coord, {c: center.x / tileSize.w, r: center.y / tileSize.h, z: 0});
-
-                    // round coords to "best" zoom level
-                    roundCoord = Coordinates.zoomedBy(coord, Math.round(coord.z)-coord.z);
-                    tl = Coordinates.zoomedBy(tl, Math.round(tl.z)-tl.z);
-                    br = Coordinates.zoomedBy(br, Math.round(br.z)-br.z);
-
-                    // generate visible tile coords           
-                    var padding = 0;
-                    var cols = d3.range( Math.floor(tl.c) - padding, Math.ceil(br.c) + padding),
-                        rows = d3.range( Math.floor(tl.r) - padding, Math.ceil(br.r) + padding),
-                        visibleCoords = [];
-                    rows.forEach(function(row) {
-                        cols.forEach(function(col) {
-                            visibleCoords.push({c: col, r: row, z: roundCoord.z});
-                        });
-                    });
-                    
-                    visibleCoords = visibleCoords.filter(validCoordinateFilter);
-                    
-                    // explicitly preserve parent tiles for tiles we haven't already loaded
-                    // not strictly necessary but helps with continuity on slow connections
-                    var compensationCoords = [];
-                        uniqueCompensations = {};
-
-                    function addParentIfNeeded(tile)
-                    {
-                        if (tile.z > 0 && tile.z > coord.z - 3) {
-                            var src = provider(tile);
-                            if ((tile.z > coord.z - 1) || !(src in loadedTiles) || (Date.now() - loadedTiles[src] < 250)) {
-                                tile = Coordinates.container(Coordinates.zoomedBy(tile, -1));
-                                src = provider(tile);
-                                if (src in loadedTiles && !(src in uniqueCompensations)) {
-                                    uniqueCompensations[src] = true;
-                                    compensationCoords.push(tile);
-                                }
-                                // better continuity if we loop, but slower (needs tuning)
-                                addParentIfNeeded(tile);
-                            }
-                        }
-                    }
-
-                    visibleCoords.forEach(addParentIfNeeded);
-                    visibleCoords = compensationCoords.concat(visibleCoords);
-
-                    // Takes the place of just String on coordinates below
-                    function coordString(c) { return [c.c, c.r, c.z].toString() };
-                    
-                    var tiles = map.selectAll('img.tile')
-                       .data(visibleCoords, coordString);
-
-                    // setup new things                        
-                    tiles.enter().append('img')
-                        .attr("id", coordString)
-                        .attr("class", "tile")
-                        .style("opacity", 0.0)
-                        .style("display", "none") // opacity doesn't seem to "take" until load event fires
-                        .style("z-index", function(tile) { return 100 * tile.z })
-                        .on('load', onTileLoaded)
-                        .each(queue.addTo) // sets img src 8 at a time using provider()
-
-                    // TODO: on('error')?
-
-                    // ensure updating tiles are at opacity 1.0 (if old enough)
-                    tiles.filter(loadedLongAgo).transition().duration(250).style("opacity", 1.0);
-
-                    // clean up old things
-                    tiles.exit()
-                        .each(queue.removeFrom)
-                        .transition()
-                          .duration(250)
-                            .style("opacity", 0.0)
-                              .delay(250)
-                                .remove()
-                                  .each('end',function() {
-                                    // prevents blank tiles if zooming confuses transitions
-                                    d3.timer(redraw,50);
-                                  });
-                                
-                    
-                    // update all positions, enter/update/exit alike
-                    if (transformProperty) {
-                        map.selectAll('img.tile')
-                            .style(transformProperty, transform);                        
-                    } else {
-                        map.selectAll('img.tile')
-                            .style("left", left)
-                            .style("top", top)
-                            .style("width", width)
-                            .style("height", height);
-                    }                    
-
-                    // see what's new
-                    queue.process();
-
-                    return true;
-                }
-                
-                function onMouseDown()
-                {
-                    var prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
-
-                    d3.select(window)
-                        .on('mousemove.map', onMouseMove)
-                        .on('mouseup.map', onMouseUp)
-                    d3.event.preventDefault();
-                    d3.event.stopPropagation();                        
-                    
-                    function onMouseMove()
-                    {
-                        var mouse = prevMouse;
-                        prevMouse = {x: d3.event.pageX, y: d3.event.pageY};
-                        coord = Coordinates.offsetBy(coord, {
-                            c: -((prevMouse.x - mouse.x) / tileSize.w),
-                            r: -((prevMouse.y - mouse.y) / tileSize.h),
-                            z: 0
-                        });
-                        d3.event.preventDefault();
-                        d3.event.stopPropagation();
-                        d3.timer(redraw);
-                    }
-                    
-                    function onMouseUp()
-                    {
-                        prevMouse = null;
-                        d3.select(window)
-                            .on('mousemove.map',null)
-                            .on('mouseup.map',null);
-                    }
-                }
-                
-                function onWheel() {
-                    // 18 = max zoom, 0 = min zoom
-                    var delta = Math.min(18-coord.z,Math.max(0-coord.z,d3_behavior_zoomDelta()));
-                    if (delta != 0) {
-                        var mouse = {x: d3.event.pageX, y: d3.event.pageY};
-                        coord = Coordinates.offsetBy(coord, {
-                            c: ((mouse.x-center.x) / tileSize.w),
-                            r: ((mouse.y-center.y) / tileSize.h),
-                            z: 0
-                        });
-                        coord = Coordinates.zoomedBy(coord, delta);
-                        coord = Coordinates.offsetBy(coord, {
-                            c: -((mouse.x-center.x) / tileSize.w),
-                            r: -((mouse.y-center.y) / tileSize.h),
-                            z: 0
-                        });
-                        d3.timer(redraw);
-                    }
-                    d3.event.preventDefault();
-                    d3.event.stopPropagation();                        
-                }
-                    
-                function onResize()
-                {
-                    center = {x: window.innerWidth/2, y: window.innerHeight/2}
-                    d3.timer(redraw);
-                }
-            };
-
-            window.onload = function() {
+        var info1 = document.getElementById('info1'),
+            info2 = document.getElementById('info2');
+    
+        function update_info(map)
+        {
+            var zoom = map.grid.zoom(),
+                digits = Math.round(Math.log(1 << zoom + 8) / Math.log(10)),
+                latlon_digits = Math.max(0, digits - 2),
+                mercator_digits = Math.max(0, digits - 7),
+                round = (Math.round(zoom) == zoom),
+                merc = new sq.Geo.Mercator(),
+                loc = map.pointLocation(),
+                lat = loc.lat.toFixed(latlon_digits),
+                lon = loc.lon.toFixed(latlon_digits),
+                point = merc.project(loc),
+                x = (6378137 * point.x).toFixed(mercator_digits),
+                y = (6378137 * point.y).toFixed(mercator_digits),
+                coord = merc.locationCoordinate(loc).zoomTo(Math.round(zoom)).container(),
+                tile = [coord.zoom, coord.column, coord.row].join('/'),
+                lines = [
+                    'Lat, lon: ' + [lat, lon].join(', '),
+                    'Mercator: ' + [x, y].join(', '),
+                    '    Zoom: ' + zoom.toFixed(0) + (round ? '' : ' (' + zoom.toFixed(2) + ')'),
+                    '    Tile: <a href="http://tile.openstreetmap.org/' + tile + '.png" target="_blank">' + tile + '</a>',
+                    '   WKT’s: POINT (' + [lon, lat].join(' ') + ')',
+                    '          POINT (' + [x, y].join(' ') + ')',
+                    ]
             
-                Grid('#map');
-  
-            }
-            
-            // expose this so our own mousewheel handler can use it
-            var d3_behavior_zoomDiv = null;
-            
-            // detect the pixels that would be scrolled by this wheel event
-            function d3_behavior_zoomDelta() {
-            
-              // mousewheel events are totally broken!
-              // https://bugs.webkit.org/show_bug.cgi?id=40441
-              // not only that, but Chrome and Safari differ in re. to acceleration!
-              if (!d3_behavior_zoomDiv) {
-                d3_behavior_zoomDiv = d3.select("body").append("div")
-                    .style("visibility", "hidden")
-                    .style("top", 0)
-                    .style("height", 0)
-                    .style("width", 0)
-                    .style("overflow-y", "scroll")
-                  .append("div")
-                    .style("height", "2000px")
-                  .node().parentNode;
-              }
-            
-              var e = d3.event, delta;
-              try {
-                d3_behavior_zoomDiv.scrollTop = 250;
-                d3_behavior_zoomDiv.dispatchEvent(e);
-                delta = 250 - d3_behavior_zoomDiv.scrollTop;
-              } catch (error) {
-                delta = e.wheelDelta || (-e.detail * 5);
-              }
-            
-              return delta * .005;
-            }          
-            
-		</script>
-		<style>
-		    html, body {
-		        width: 100%;
-		        height: 100%;
-		        margin: 0;
-		        padding: 0;
-		        border: 0;
-		    }
-		    #map {
-		        position: absolute;
-		        overflow: hidden;
-		        margin: 0;
-		        padding: 0;
-		        border: 0;
-		    }
-		    img.tile {
-		        display: block;
-		        position: absolute;
-		        margin: 0;
-		        padding: 0;
-		        border: 0;
-		        -webkit-transform-origin: 0px 0px;
-		    }
-		    p {
-		        font: bold 12px sans-serif;
-		        position: absolute;
-		        display: block;
-		        right: 5px;
-		        bottom: 5px;
-		        color: white;
-		        text-shadow: 1px 1px 4px rgba(0,0,0,0.75);
-		        z-index: 250;
-		        margin: 0;
-		        padding: 5px;
-		    }
-		    p a {
-		        color: white;
-		    }
-		</style>
-    </head>
-    <body>
-        <div id="map" style="width: 100%; height: 100%;"></div>
-        <p>Tiles &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, CC-BY-SA. Courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png"></p>
-    </body>
+            info1.innerHTML = lines.slice(0, 3).join('\n');
+            info2.innerHTML = lines.slice(3, 6).join('\n');
+        }
+    
+        /*
+        var map = sq.makeDivMap(document.getElementById('map'), 37.804319, -122.271210, 12);
+        */
+
+        var map = sq.makeImgMap(document.getElementById('map'),
+                                'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
+                                37.804319, -122.271210, 12);
+
+        map.onMoved(update_info);
+        update_info(map);
+    
+    //-->
+    </script>
+</body>
 </html>
