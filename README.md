@@ -3,10 +3,22 @@ Squares
 
 Squares is a small, extensible, [free and open-source](LICENSE) library for
 in-browser maps, written in [Typescript](http://www.typescriptlang.org/) and
-using [D3](http://d3js.org/) under the hood.
+using [D3 v2](http://d3js.org/) under the hood.
 
 Squares is an adaptation of [Bloom Studio’s D3Map](https://github.com/bloomtime/d3map#readme),
 written by Tom Carden and ported to Typescript by [Michal Migurski](http://mike.teczno.com).
+
+Try
+---
+
+A simple [demo with get lat+lon functionality](http://teczno.com/squares/) shows
+off Squares’s core features:
+
+ - Seam-free panning and zooming of tiled maps/images
+ - Use of CSS transforms where available
+ - Smooth mouse-wheeling with D3's normalized mouse-wheel delta
+ - Mercator projection support, basic understanding of geography
+ - Built-in [URL hash](https://github.com/mlevans/leaflet-hash) for linking
 
 Why
 ---
