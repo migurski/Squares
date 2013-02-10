@@ -1,5 +1,6 @@
 ///<reference path="d3types.ts" />
 import Mouse = module('Mouse');
+import Hash = module('Hash');
 import Base = module('Base');
 import Core = module('Core');
 import Tile = module('Tile');
@@ -31,8 +32,6 @@ export class Map implements Base.Map
         this.template = template;
         this.parent = parent;
         
-        Mouse.link_control(this.selection, new Mouse.Control(this, true));
-        
         var size = Mouse.element_size(this.parent),
             coord = proj.locationCoordinate(loc).zoomTo(zoom);
 
@@ -44,12 +43,16 @@ export class Map implements Base.Map
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
         
+        // Link controls after Grid is set up, so coordinates and such exist.
+        Mouse.link_control(this.selection, new Mouse.Control(this, true));
+        Hash.link_control(this);
+        
         var map = this;
         
         d3.select(window).on('resize.map', function() { map.update_gridsize() });
         
         this.selection.selectAll('img.tile').remove();
-        this.redraw(false);
+        this.redraw(true);
     }
     
     private update_gridsize():void
@@ -59,7 +62,7 @@ export class Map implements Base.Map
         this.redraw(true);
     }
     
-    public pointLocation(point:Core.Point=null):Geo.Location
+    public pointLocation(point:Core.Point):Geo.Location
     {
         var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
         return this.projection.coordinateLocation(coord);
@@ -69,6 +72,12 @@ export class Map implements Base.Map
     {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
+    }
+    
+    public setCenterZoom(loc:Geo.Location, zoom:number):void
+    {
+        this.grid.setCenter(this.projection.locationCoordinate(loc, zoom));
+        this.redraw(true);
     }
     
     public onMoved(callback:(map:Base.Map)=>void):void
@@ -276,7 +285,7 @@ class Queue
     {
         this.queue.sort(Request.compare);
     
-        while(this.open_request_count < 8 && this.queue.length > 0)
+        while(this.open_request_count < 4 && this.queue.length > 0)
         {
             var request:Request = this.queue.shift(),
                 loading:Boolean = request.load();

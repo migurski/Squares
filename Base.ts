@@ -11,4 +11,6 @@ export interface Map
     pointLocation(point:Core.Point):Geo.Location;
     locationPoint(loc:Geo.Location):Core.Point;
     onMoved(callback:(map:Map)=>void):void;
+    
+    setCenterZoom(loc:Geo.Location, zoom:number):void;
 }

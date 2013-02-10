@@ -46,6 +46,22 @@ export class Grid
     }
     
    /**
+    * Center the grid on a given coordinate.
+    */
+    public setCenter(coord:Core.Coordinate):void
+    {
+        if(this.coord.zoom > MaxZoom) {
+            this.coord = coord.zoomTo(MaxZoom);
+        
+        } else if(this.coord.zoom < MinZoom) {
+            this.coord = coord.zoomTo(MinZoom);
+
+        } else {
+            this.coord = coord;
+        }
+    }
+    
+   /**
     * Pan by a given x and y distance.
     */
     public panBy(x:number, y:number):void

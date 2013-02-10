@@ -20,13 +20,14 @@ export class Map implements Base.Map
         this.selection = d3.select(parent);
         this.parent = parent;
         
-        Mouse.link_control(this.selection, new Mouse.Control(this, false));
-        
         var size = Mouse.element_size(this.parent),
             coord = proj.locationCoordinate(loc).zoomTo(zoom);
 
         this.grid = new Grid.Grid(size.x, size.y, coord, 0);
         this.projection = proj;
+        
+        // Link controls after Grid is set up, so coordinates and such exist.
+        Mouse.link_control(this.selection, new Mouse.Control(this, false));
         
         var map = this;
         
@@ -43,7 +44,7 @@ export class Map implements Base.Map
         this.redraw(true);
     }
     
-    public pointLocation(point:Core.Point=null):Geo.Location
+    public pointLocation(point:Core.Point):Geo.Location
     {
         var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
         return this.projection.coordinateLocation(coord);
@@ -53,6 +54,12 @@ export class Map implements Base.Map
     {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
+    }
+    
+    public setCenterZoom(loc:Geo.Location, zoom:number):void
+    {
+        this.grid.setCenter(this.projection.locationCoordinate(loc, zoom));
+        this.redraw(true);
     }
     
     public onMoved(callback:(map:Base.Map)=>void):void

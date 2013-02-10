@@ -433,6 +433,7 @@ process.binding = function (name) {
 });
 
 require.define("/Image.js",function(require,module,exports,__dirname,__filename,process,global){var Mouse = require("./Mouse")
+var Hash = require("./Hash")
 var Base = require("./Base")
 
 var Tile = require("./Tile")
@@ -445,7 +446,6 @@ var Map = (function () {
         };
         this.template = template;
         this.parent = parent;
-        Mouse.link_control(this.selection, new Mouse.Control(this, true));
         var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
         this.grid = new Grid.Grid(size.x, size.y, coord, 3);
         this.projection = proj;
@@ -453,12 +453,14 @@ var Map = (function () {
         this.tile_queuer = this.getTileQueuer();
         this.tile_dequeuer = this.getTileDequeuer();
         this.tile_onloaded = this.getTileOnloaded();
+        Mouse.link_control(this.selection, new Mouse.Control(this, true));
+        Hash.link_control(this);
         var map = this;
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
         });
         this.selection.selectAll('img.tile').remove();
-        this.redraw(false);
+        this.redraw(true);
     }
     Map.prototype.update_gridsize = function () {
         var size = Mouse.element_size(this.parent);
@@ -466,13 +468,16 @@ var Map = (function () {
         this.redraw(true);
     };
     Map.prototype.pointLocation = function (point) {
-        if (typeof point === "undefined") { point = null; }
         var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
         return this.projection.coordinateLocation(coord);
     };
     Map.prototype.locationPoint = function (loc) {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
+    };
+    Map.prototype.setCenterZoom = function (loc, zoom) {
+        this.grid.setCenter(this.projection.locationCoordinate(loc, zoom));
+        this.redraw(true);
     };
     Map.prototype.onMoved = function (callback) {
         var map = this, before = this.moved_callback;
@@ -562,7 +567,7 @@ var Queue = (function () {
     };
     Queue.prototype.process = function () {
         this.queue.sort(Request.compare);
-        while(this.open_request_count < 8 && this.queue.length > 0) {
+        while(this.open_request_count < 4 && this.queue.length > 0) {
             var request = this.queue.shift(), loading = request.load();
             if(loading) {
                 this.requests_by_id[request.id] = request;
@@ -798,6 +803,96 @@ exports.Coordinate = Coordinate;
 
 });
 
+require.define("/Hash.js",function(require,module,exports,__dirname,__filename,process,global){
+var Geo = require("./Geo")
+var has_hash_change = ('onhashchange' in window) && (!('documentMode' in window) || window['documentMode'] > 7);
+var hash_changed_by_me = false;
+var hash_change_timeout;
+var hash_linked_map;
+function link_control(map) {
+    if(hash_linked_map) {
+        return;
+    }
+    hash_linked_map = map;
+    on_hash_changed();
+    window.addEventListener('hashchange', on_hash_changed);
+    hash_linked_map.onMoved(on_mapmoved);
+}
+exports.link_control = link_control;
+function on_mapmoved(map) {
+    if(hash_change_timeout) {
+        return;
+    } else if(map != hash_linked_map) {
+        return;
+    }
+    hash_change_timeout = window.setTimeout(update_hash, 50);
+}
+function update_hash() {
+    clearTimeout(hash_change_timeout);
+    hash_change_timeout = null;
+    var zoom = hash_linked_map.grid.zoom(), round = (Math.round(zoom).toFixed(2) == zoom.toFixed(2)), precision = Math.round(Math.log(1 << zoom + 8) / Math.log(10)), digits = Math.max(0, precision - 2), loc = hash_linked_map.pointLocation(null), parts = [
+        zoom.toFixed(round ? 0 : 2), 
+        loc.lat.toFixed(digits), 
+        loc.lon.toFixed(digits)
+    ];
+    hash_changed_by_me = true;
+    location.hash = '#' + parts.join('/');
+}
+function on_hash_changed() {
+    if(hash_changed_by_me) {
+        hash_changed_by_me = false;
+        return;
+    }
+    var match = location.hash.match(/^#(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/);
+    if(match) {
+        var zoom = parseFloat(match[1]), loc = new Geo.Location(parseFloat(match[2]), parseFloat(match[3]));
+        hash_linked_map.setCenterZoom(loc, zoom);
+    }
+}
+
+});
+
+require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
+var Location = (function () {
+    function Location(lat, lon) {
+        this.lat = lat;
+        this.lon = lon;
+    }
+    Location.prototype.toString = function () {
+        return "(" + this.lat.toFixed(6) + ", " + this.lon.toFixed(6) + ")";
+    };
+    return Location;
+})();
+exports.Location = Location;
+var π = Math.PI;
+var Mercator = (function () {
+    function Mercator() {
+    }
+    Mercator.prototype.project = function (loc) {
+        var λ = π * loc.lon / 180, φ = π * loc.lat / 180;
+        var x = λ, y = Math.log(Math.tan(π / 4 + φ / 2));
+        return new Core.Point(x, y);
+    };
+    Mercator.prototype.inverse = function (point) {
+        var λ = point.x, φ = 2 * Math.atan(Math.exp(point.y)) - π / 2;
+        var lat = 180 * φ / π, lon = 180 * λ / π;
+        return new Location(lat, lon);
+    };
+    Mercator.prototype.locationCoordinate = function (loc, zoom) {
+        if (typeof zoom === "undefined") { zoom = 0; }
+        var p = this.project(loc), col = (p.x + π) / (2 * π), row = (π - p.y) / (2 * π);
+        return new Core.Coordinate(row, col, 0).zoomTo(zoom);
+    };
+    Mercator.prototype.coordinateLocation = function (coord) {
+        var coord = coord.zoomTo(0), x = (coord.column * 2 * π) - π, y = π - (coord.row * 2 * π);
+        return this.inverse(new Core.Point(x, y));
+    };
+    return Mercator;
+})();
+exports.Mercator = Mercator;
+
+});
+
 require.define("/Base.js",function(require,module,exports,__dirname,__filename,process,global){
 
 
@@ -912,6 +1007,15 @@ var Grid = (function () {
     Grid.prototype.resize = function (w, h) {
         this.center = new Core.Point(w / 2, h / 2);
     };
+    Grid.prototype.setCenter = function (coord) {
+        if(this.coord.zoom > MaxZoom) {
+            this.coord = coord.zoomTo(MaxZoom);
+        } else if(this.coord.zoom < MinZoom) {
+            this.coord = coord.zoomTo(MinZoom);
+        } else {
+            this.coord = coord;
+        }
+    };
     Grid.prototype.panBy = function (x, y) {
         var new_center = new Core.Point(this.center.x - x, this.center.y - y);
         this.coord = this.pointCoordinate(new_center);
@@ -973,10 +1077,10 @@ var Map = (function () {
     function Map(parent, proj, loc, zoom) {
         this.selection = d3.select(parent);
         this.parent = parent;
-        Mouse.link_control(this.selection, new Mouse.Control(this, false));
         var size = Mouse.element_size(this.parent), coord = proj.locationCoordinate(loc).zoomTo(zoom);
         this.grid = new Grid.Grid(size.x, size.y, coord, 0);
         this.projection = proj;
+        Mouse.link_control(this.selection, new Mouse.Control(this, false));
         var map = this;
         d3.select(window).on('resize.map', function () {
             map.update_gridsize();
@@ -990,13 +1094,16 @@ var Map = (function () {
         this.redraw(true);
     };
     Map.prototype.pointLocation = function (point) {
-        if (typeof point === "undefined") { point = null; }
         var coord = this.grid.pointCoordinate(point ? point : this.grid.center);
         return this.projection.coordinateLocation(coord);
     };
     Map.prototype.locationPoint = function (loc) {
         var coord = this.projection.locationCoordinate(loc);
         return this.grid.coordinatePoint(coord);
+    };
+    Map.prototype.setCenterZoom = function (loc, zoom) {
+        this.grid.setCenter(this.projection.locationCoordinate(loc, zoom));
+        this.redraw(true);
     };
     Map.prototype.onMoved = function (callback) {
         var map = this, before = this.moved_callback;
@@ -1037,47 +1144,6 @@ function tile_height(tile) {
 function tile_xform(tile) {
     return tile.transform();
 }
-
-});
-
-require.define("/Geo.js",function(require,module,exports,__dirname,__filename,process,global){var Core = require("./Core")
-var Location = (function () {
-    function Location(lat, lon) {
-        this.lat = lat;
-        this.lon = lon;
-    }
-    Location.prototype.toString = function () {
-        return "(" + this.lat.toFixed(6) + ", " + this.lon.toFixed(6) + ")";
-    };
-    return Location;
-})();
-exports.Location = Location;
-var π = Math.PI;
-var Mercator = (function () {
-    function Mercator() {
-    }
-    Mercator.prototype.project = function (loc) {
-        var λ = π * loc.lon / 180, φ = π * loc.lat / 180;
-        var x = λ, y = Math.log(Math.tan(π / 4 + φ / 2));
-        return new Core.Point(x, y);
-    };
-    Mercator.prototype.inverse = function (point) {
-        var λ = point.x, φ = 2 * Math.atan(Math.exp(point.y)) - π / 2;
-        var lat = 180 * φ / π, lon = 180 * λ / π;
-        return new Location(lat, lon);
-    };
-    Mercator.prototype.locationCoordinate = function (loc, zoom) {
-        if (typeof zoom === "undefined") { zoom = 0; }
-        var p = this.project(loc), col = (p.x + π) / (2 * π), row = (π - p.y) / (2 * π);
-        return new Core.Coordinate(row, col, 0).zoomTo(zoom);
-    };
-    Mercator.prototype.coordinateLocation = function (coord) {
-        var coord = coord.zoomTo(0), x = (coord.column * 2 * π) - π, y = π - (coord.row * 2 * π);
-        return this.inverse(new Core.Point(x, y));
-    };
-    return Mercator;
-})();
-exports.Mercator = Mercator;
 
 });
 
