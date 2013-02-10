@@ -14,7 +14,7 @@
             border-top: 1px solid black;
             border-bottom: 1px solid black;
             width: 100%;
-            height: 350px;
+            height: 420px;
 
             position: relative;
             overflow: hidden;
@@ -30,12 +30,32 @@
             left: 50%;
         }
             
-            #map-center img
+            #map-center img,
+            #map-center #vertical-rule,
+            #map-center #horizontal-rule
             {
                 position: absolute;
                 pointer-events: none;
-                top: -16px;
-                left: -16px;
+            }
+        
+            #map-center img
+            {
+                top: -8px;
+                left: -8px;
+            }
+        
+            #map-center #vertical-rule
+            {
+                border-left: 1px solid rgba(0, 0, 0, .1);
+                height: 420px;
+                top: -210px;
+            }
+        
+            #map-center #horizontal-rule
+            {
+                border-top: 1px solid rgba(0, 0, 0, .1);
+                width: 1350px;
+                left: -675px;
             }
         
             img.tile,
@@ -57,7 +77,11 @@
         I miss getlatlon.com.
     </p>
     <div id="map">
-        <div id="map-center"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAMAAABgOjJdAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAHUlEQVR42mJgRAMMowKjAkgChMFoiI0K4BEACDAAyNoEAWlto/IAAAAASUVORK5CYII="></div>
+        <div id="map-center">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARAQMAAAABo9W5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRFAAAA////pdmf3QAAAAJ0Uk5T/wDltzBKAAAAEklEQVQI12P4X9/AgA+DAAE1AEQwH+EzObtuAAAAAElFTkSuQmCC">
+            <div id="vertical-rule"> </div>
+            <div id="horizontal-rule"> </div>
+        </div>
     </div>
     <pre id="info">
         
@@ -82,16 +106,17 @@
                 x = (6378137 * point.x).toFixed(mercator_digits),
                 y = (6378137 * point.y).toFixed(mercator_digits),
                 coord = merc.locationCoordinate(loc).zoomTo(Math.round(zoom)).container(),
+                tile = [coord.zoom, coord.column, coord.row].join('/'),
                 lines = [
                     'Lat, lon: ' + [lat, lon].join(', '),
                     'Mercator: ' + [x, y].join(', '),
                     '    Zoom: ' + zoom.toFixed(0) + (round ? '' : ' (' + zoom.toFixed(2) + ')'),
-                    '    Tile: ' + [coord.zoom, coord.column, coord.row].join('/'),
+                    '    Tile: <a href="http://tile.openstreetmap.org/' + tile + '.png" target="_blank">' + tile + '</a>',
                     '   WKT’s: POINT (' + [lon, lat].join(' ') + ')',
                     '          POINT (' + [x, y].join(' ') + ')',
                     ]
             
-            info.innerText = lines.join('\n');
+            info.innerHTML = lines.join('\n');
         }
     
         /*
