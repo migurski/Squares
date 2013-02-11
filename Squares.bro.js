@@ -1166,6 +1166,8 @@ function makeDivMap(parent, lat, lon, zoom) {
 window['squares'] = {
     makeImgMap: makeImgMap,
     makeDivMap: makeDivMap,
+    ImageMap: Image.Map,
+    DivMap: Div.Map,
     Geo: {
         Mercator: Geo.Mercator
     }

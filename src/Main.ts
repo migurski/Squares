@@ -27,6 +27,8 @@ function makeDivMap(parent:HTMLElement, lat:number, lon:number, zoom:number):Div
 window['squares'] = {
     makeImgMap: makeImgMap,
     makeDivMap: makeDivMap,
+    ImageMap: Image.Map,
+    DivMap: Div.Map,
     Geo: {
         Mercator: Geo.Mercator
         }
