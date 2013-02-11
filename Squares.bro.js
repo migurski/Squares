@@ -627,6 +627,22 @@ function tile_zoom(tile) {
 require.define("/Mouse.js",function(require,module,exports,__dirname,__filename,process,global){
 var Core = require("./Core")
 
+if('onwheel' in document) {
+    var d3_behavior_zoom_wheel = 'wheel';
+    var d3_behavior_zoom_delta = function () {
+        return -d3.event.deltaY * (d3.event.deltaMode ? 40 : 1);
+    };
+} else if('onmousewheel' in document) {
+    var d3_behavior_zoom_wheel = 'mousewheel';
+    var d3_behavior_zoom_delta = function () {
+        return d3.event.wheelDelta;
+    };
+} else {
+    var d3_behavior_zoom_wheel = 'MozMousePixelScroll';
+    var d3_behavior_zoom_delta = function () {
+        return -d3.event.detail;
+    };
+}
 function element_size(element) {
     if(element == document.body) {
         return new Core.Point(window.innerWidth, window.innerHeight);
@@ -647,7 +663,7 @@ function link_control(selection, control) {
     selection.on('mousedown.map', function () {
         control.onMousedown();
     });
-    selection.on('mousewheel.map', function () {
+    selection.on(d3_behavior_zoom_wheel + '.map', function () {
         control.onMousewheel();
     });
     selection.on('DOMMouseScroll.map', function () {
@@ -722,23 +738,10 @@ var Control = (function () {
         };
     };
     Control.prototype.onMousewheel = function () {
-        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
+        var mouse = d3.mouse(this.map.parent), anchor = new Core.Point(mouse[0], mouse[1]), target = this.map.grid.zoom() + 0.001 * d3_behavior_zoom_delta();
         this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw(true);
         smother_event();
-    };
-    Control.prototype.d3_behavior_zoom_delta = function () {
-        if(!this.d3_behavior_zoom_div) {
-            this.d3_behavior_zoom_div = d3.select("body").append("div").style("visibility", "hidden").style("top", 0).style("height", 0).style("width", 0).style("overflow-y", "scroll").append("div").style("height", "2000px").node().parentNode;
-        }
-        try  {
-            this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(d3.event);
-            var delta = 250 - this.d3_behavior_zoom_div['scrollTop'];
-        } catch (error) {
-            var delta = d3.event.wheelDelta || (-d3.event.detail * 5);
-        }
-        return delta * 0.003;
     };
     return Control;
 })();

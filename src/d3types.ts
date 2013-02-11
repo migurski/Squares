@@ -295,6 +295,8 @@ interface ID3Event extends Event
     pageX:number;
     pageY:number;
     wheelDelta:number;
+    deltaY:number;
+    deltaMode:number;
     shiftKey:Boolean;
     detail:number;
 }

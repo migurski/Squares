@@ -3,6 +3,23 @@ import Base = module('Base');
 import Core = module('Core');
 import Grid = module('Grid');
 
+//
+// Browser-specific mousewheel handling, borrowed from
+// https://github.com/mbostock/d3/pull/1050/files
+//
+if('onwheel' in document) {
+    var d3_behavior_zoom_wheel = 'wheel';
+    var d3_behavior_zoom_delta = function():number { return -d3.event.deltaY * (d3.event.deltaMode ? 40 : 1); };
+
+} else if('onmousewheel' in document) {
+    var d3_behavior_zoom_wheel = 'mousewheel';
+    var d3_behavior_zoom_delta = function():number { return d3.event.wheelDelta; };
+
+} else {
+    var d3_behavior_zoom_wheel = 'MozMousePixelScroll';
+    var d3_behavior_zoom_delta = function():number { return -d3.event.detail; };
+}
+
 export function element_size(element:HTMLElement):Core.Point
 {
     if(element == document.body)
@@ -53,7 +70,7 @@ export function link_control(selection:ID3Selection, control:Control):void
     //
     selection.on('dblclick.map', function() { control.onDoubleclick() });
     selection.on('mousedown.map', function() { control.onMousedown() });
-    selection.on('mousewheel.map', function() { control.onMousewheel() });
+    selection.on(d3_behavior_zoom_wheel+'.map', function() { control.onMousewheel() });
     selection.on('DOMMouseScroll.map', function() { control.onMousewheel() });
     
     zoom_in
@@ -93,9 +110,6 @@ export class Control
 {
     private map:Base.Map;
     private whole_zooms:Boolean;
-    
-    // secret div used in d3_behavior_zoom_delta to correct mouse wheel speed.
-    private d3_behavior_zoom_div:Node;
     
     constructor(map:Base.Map, whole_zooms:Boolean)
     {
@@ -182,46 +196,11 @@ export class Control
     {
         var mouse = d3.mouse(this.map.parent),
             anchor = new Core.Point(mouse[0], mouse[1]),
-            target = this.map.grid.zoom() + this.d3_behavior_zoom_delta();
+            target = this.map.grid.zoom() + 0.001 * d3_behavior_zoom_delta();
         
         this.map.grid.zoomToAbout(target, anchor);
         this.map.redraw(true);
 
         smother_event();
     }
-
-    private d3_behavior_zoom_delta():number
-    {
-        //
-        // mousewheel events are totally broken!
-        // https://bugs.webkit.org/show_bug.cgi?id=40441
-        // not only that, but Chrome and Safari differ in re. to acceleration!
-        //
-        if(!this.d3_behavior_zoom_div)
-        {
-            this.d3_behavior_zoom_div = d3
-                .select("body")
-                .append("div")
-                  .style("visibility", "hidden")
-                  .style("top", 0)
-                  .style("height", 0)
-                  .style("width", 0)
-                  .style("overflow-y", "scroll")
-                  .append("div")
-                    .style("height", "2000px")
-                    .node()
-                    .parentNode;
-        }
-        
-        try {
-            this.d3_behavior_zoom_div['scrollTop'] = 250;
-            this.d3_behavior_zoom_div.dispatchEvent(d3.event);
-            var delta:number = 250 - this.d3_behavior_zoom_div['scrollTop'];
-
-        } catch (error) {
-            var delta:number = d3.event.wheelDelta || (-d3.event.detail * 5);
-        }
-        
-        return delta * .003;
-    }          
 }
