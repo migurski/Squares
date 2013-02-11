@@ -1,4 +1,5 @@
 import Image = module('Image');
+import Core = module('Core');
 import Div = module('Div');
 import Geo = module('Geo');
 
@@ -27,11 +28,13 @@ function makeDivMap(parent:HTMLElement, lat:number, lon:number, zoom:number):Div
 window['squares'] = {
     makeImgMap: makeImgMap,
     makeDivMap: makeDivMap,
-    ImageMap: Image.Map,
-    DivMap: Div.Map,
-    Geo: {
-        Mercator: Geo.Mercator
-        }
+    Image: { Map: Image.Map },
+    Div: { Map: Div.Map },
+    Core: {
+        Point: Core.Point,
+        Coordinate: Core.Coordinate
+        },
+    Geo: { Mercator: Geo.Mercator }
     };
 
 if(window['sq'] == undefined)
