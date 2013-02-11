@@ -6,8 +6,8 @@ all: Squares-D3-$(VERSION).min.js Squares-$(VERSION).min.js Squares.bro.js
 	#
 
 live: Squares-D3-$(VERSION).min.js Squares-$(VERSION).min.js
-	scp Squares-D3-$(VERSION).min.js teczno.com:public_html/
-	scp Squares-$(VERSION).min.js teczno.com:public_html/
+	scp Squares-D3-$(VERSION).min.js teczno.com:public_html/squares/
+	scp Squares-$(VERSION).min.js teczno.com:public_html/squares/
 
 Squares-D3-$(VERSION).min.js: Squares.min.js
 	echo '// D3 v2 retrieved $(DATE)' > Squares-D3-$(VERSION).min.js
