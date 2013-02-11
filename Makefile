@@ -1,9 +1,30 @@
+VERSION:=$(shell cat VERSION)
+DATE:=$(shell date)
+HASH:=$(shell git rev-parse --verify --short HEAD)
+
+all: Squares-D3-$(VERSION).min.js Squares-$(VERSION).min.js Squares.bro.js
+	#
+
+live: Squares-D3-$(VERSION).min.js Squares-$(VERSION).min.js
+	scp Squares-D3-$(VERSION).min.js teczno.com:public_html/
+	scp Squares-$(VERSION).min.js teczno.com:public_html/
+
+Squares-D3-$(VERSION).min.js: Squares.min.js
+	echo '// D3 v2 retrieved $(DATE)' > Squares-D3-$(VERSION).min.js
+	curl -fs http://d3js.org/d3.v2.min.js >> Squares-D3-$(VERSION).min.js
+
+	echo '\n\n// Squares $(VERSION) from commit $(HASH)' >> Squares-D3-$(VERSION).min.js
+	cat Squares.min.js >> Squares-D3-$(VERSION).min.js
+
+Squares-$(VERSION).min.js: Squares.min.js
+	cp Squares.min.js Squares-$(VERSION).min.js
+
 Squares.min.js: Squares.bro.js
 	curl --data-urlencode "js_code@Squares.bro.js" \
 	     -d compilation_level=SIMPLE_OPTIMIZATIONS \
 	     -d output_info=compiled_code \
 	     -d output_format=text \
-	     -so Squares.min.js \
+	     -fso Squares.min.js \
 	     http://closure-compiler.appspot.com/compile
 
 Squares.bro.js: src/d3types.ts \
@@ -19,4 +40,4 @@ Squares.bro.js: src/d3types.ts \
 clean:
 	rm -f src/Base.js src/Core.js src/Geo.js src/Grid.js src/Mouse.js
 	rm -f src/Hash.js src/Main.js src/Tile.js src/Image.js src/Div.js
-	rm -f Squares.min.js
+	rm -f Squares.min.js Squares-$(VERSION).min.js
