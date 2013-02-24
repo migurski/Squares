@@ -1148,7 +1148,9 @@ function tile_xform(tile) {
 });
 
 require.define("/Main.js",function(require,module,exports,__dirname,__filename,process,global){var Image = require("./Image")
+var Mouse = require("./Mouse")
 var Core = require("./Core")
+var Grid = require("./Grid")
 var Div = require("./Div")
 var Geo = require("./Geo")
 var sorry_docbody_safari5 = 'Sorry, for the moment I can’t figure out how to make the mousewheel work in Safari 5.0 when the parent element is the document body. Try making your parent element a DIV?';
@@ -1179,6 +1181,14 @@ window['squares'] = {
     },
     Geo: {
         Mercator: Geo.Mercator
+    },
+    Grid: {
+        Grid: Grid.Grid
+    },
+    Mouse: {
+        Control: Mouse.Control,
+        link_control: Mouse.link_control,
+        element_size: Mouse.element_size
     }
 };
 if(window['sq'] == undefined) {

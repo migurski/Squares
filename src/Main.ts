@@ -1,5 +1,7 @@
 import Image = module('Image');
+import Mouse = module('Mouse');
 import Core = module('Core');
+import Grid = module('Grid');
 import Div = module('Div');
 import Geo = module('Geo');
 
@@ -34,7 +36,13 @@ window['squares'] = {
         Point: Core.Point,
         Coordinate: Core.Coordinate
         },
-    Geo: { Mercator: Geo.Mercator }
+    Geo: { Mercator: Geo.Mercator },
+    Grid: { Grid: Grid.Grid },
+    Mouse: {
+        Control: Mouse.Control,
+        link_control: Mouse.link_control,
+        element_size: Mouse.element_size
+        }
     };
 
 if(window['sq'] == undefined)
