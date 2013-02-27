@@ -2,6 +2,7 @@ import Image = module('Image');
 import Mouse = module('Mouse');
 import Core = module('Core');
 import Grid = module('Grid');
+import Hash = module('Hash');
 import Div = module('Div');
 import Geo = module('Geo');
 
@@ -42,6 +43,9 @@ window['squares'] = {
         Control: Mouse.Control,
         link_control: Mouse.link_control,
         element_size: Mouse.element_size
+        },
+    Hash: {
+        link_control: Hash.link_control
         }
     };
 

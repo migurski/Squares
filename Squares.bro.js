@@ -1151,6 +1151,7 @@ require.define("/Main.js",function(require,module,exports,__dirname,__filename,p
 var Mouse = require("./Mouse")
 var Core = require("./Core")
 var Grid = require("./Grid")
+var Hash = require("./Hash")
 var Div = require("./Div")
 var Geo = require("./Geo")
 var sorry_docbody_safari5 = 'Sorry, for the moment I can’t figure out how to make the mousewheel work in Safari 5.0 when the parent element is the document body. Try making your parent element a DIV?';
@@ -1189,6 +1190,9 @@ window['squares'] = {
         Control: Mouse.Control,
         link_control: Mouse.link_control,
         element_size: Mouse.element_size
+    },
+    Hash: {
+        link_control: Hash.link_control
     }
 };
 if(window['sq'] == undefined) {
