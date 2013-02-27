@@ -1,0 +1,20 @@
+body
+{
+    background-color: #EEE8D5;
+}
+
+#map
+{
+	width: 960px;
+	height: 500px;
+	position: relative;
+	overflow: hidden;
+	margin: 0;
+	padding: 0 0 0 1em;
+}
+
+    div.tile
+    {
+        color: #839496;
+        display: block;
+    }

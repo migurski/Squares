@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>GL-Solar (Squares demo)</title>
+    <script src="http://teczno.com/squares/Squares-D3-0.0.5.min.js" type="application/javascript"></script>
+    <script src="gl-boilerplate.js" type="application/javascript"></script>
+    <script src="tile-queue.js" type="application/javascript"></script>
+    <script src="map.js" type="application/javascript"></script>
+    <link rel="stylesheet" href="http://www.openstreetmap.us/~migurski/style.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>GL-Solar</h1>
+
+    <p>
+        Demo of <a href="https://github.com/migurski/Squares#readme">Squares</a>
+        showing OpenStreetMap centerlines loading via tiled GeoJSON
+        (<a href="http://www.openstreetmap.us/~migurski/tiles/highroad/16/10510/25324.json">sample</a>),
+        and rendered with WebGL and Canvas. Pan, zoom and scroll are all enabled but
+        the transitions between zoom levels are still quite rough around the edges.
+        Uses road colors and treatments from <a href="https://github.com/migurski/OSM-Solar#readme">OSM-Solar</a>.
+    </p>
+    
+    <div id="map"></div>
+
+    <p>
+        <a href="http://mike.teczno.com">Michal Migurski</a>, Feb 2013.
+    </p>
+    
+    <script id="shader-vertex" type="x-shader/x-vertex">
+    
+        const mat4 view = mat4 (2.0/{CANVAS_WIDTH}, 0, 0, 0, 0, -2.0/{CANVAS_HEIGHT}, 0, 0, 0, 0, -0.0001, 0, -1, 1, 0, 1);
+        uniform mat4 panzoom;
+
+        attribute vec3 xyz;
+        attribute vec4 rgba;
+        varying vec4 color;
+
+        void main()
+        {
+            gl_Position = view * panzoom * vec4(xyz, 1);
+            color = rgba;
+        }
+    
+    </script>
+    
+    <script id="shader-fragment" type="x-shader/x-fragment">
+        
+        precision mediump float;
+        
+        const vec3 bg = vec3(0.992, 0.965, 0.890);
+        varying vec4 color;
+        
+        void main()
+        {
+            // instead of using the full RGBA, do a linear mix with background color
+            gl_FragColor = vec4(mix(bg.rgb, color.rgb, color.a), 1);
+        }
+    
+    </script>
+    
+    <script type="application/javascript">
+    <!--
+    
+        var ctx = get_webgl_context();
+        
+        var geo = new sq.Geo.Mercator();
+        var map = new Map(document.getElementById('map'), geo, {lat: 37.8043, lon: -122.2712}, 15);
+        
+        //
+        // Return a pair of functions to call from Map class in map.js, one to
+        // push new data into xyz-rgba buffer and the other to trigger redraw.
+        //
+        function get_webgl_context(matrix)
+        {
+            var map = document.getElementById('map'),
+                c = document.createElement('canvas');
+
+            c.width = map.clientWidth;
+            c.height = map.clientHeight;
+            c.style.position = 'absolute';
+            map.insertBefore(c, null);
+
+            var gl = c.getContext('experimental-webgl'),
+                vsource = document.getElementById('shader-vertex').innerText,
+                vsource = vsource.replace('{CANVAS_WIDTH}', c.width.toFixed(1)),
+                vsource = vsource.replace('{CANVAS_HEIGHT}', c.height.toFixed(1)),
+                fsource = document.getElementById('shader-fragment').innerText,
+                program = linkProgram(gl, vsource, fsource);
+            
+            gl.useProgram(program);
+            
+            var xyzrgba_buffer = gl.createBuffer(),
+                xyz_attrib = gl.getAttribLocation(program, 'xyz'),
+                rgba_attrib = gl.getAttribLocation(program, 'rgba'),
+                panzoom = gl.getUniformLocation(program, 'panzoom'),
+                length = 0;
+            
+            gl.enableVertexAttribArray(xyz_attrib);
+            gl.enableVertexAttribArray(rgba_attrib);
+            gl.bindBuffer(gl.ARRAY_BUFFER, xyzrgba_buffer);
+            
+            function data(xys)
+            {
+                gl.bufferData(gl.ARRAY_BUFFER, xys, gl.DYNAMIC_DRAW);
+                length = xys.length/7;
+            }
+            
+            function draw(size, ul, lr)
+            {
+                // mx+b style transformation.
+                
+                var mx = size.x / (lr.x - ul.x), bx = -mx * ul.x,
+                    my = size.y / (lr.y - ul.y), by = -my * ul.y;
+                
+                var matrix = new Float32Array([mx, 0, 0, 0, 0, my, 0, 0, 0, 0, 1, 0, bx, by, 0, 1]);
+                
+                gl.clearColor(253/255, 246/255, 227/255, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                gl.enable(gl.DEPTH_TEST);
+                
+                gl.uniformMatrix4fv(panzoom, false, matrix);
+
+                gl.vertexAttribPointer(xyz_attrib, 3, gl.FLOAT, false, 4*7, 0);
+                gl.vertexAttribPointer(rgba_attrib, 4, gl.FLOAT, false, 4*7, 4*3);
+                gl.drawArrays(gl.TRIANGLES, 0, length);
+            }
+            
+            return {draw: draw, data: data};
+        }
+        
+    //-->
+    </script>
+</body>
+</html>
