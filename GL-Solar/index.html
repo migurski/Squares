@@ -87,10 +87,10 @@
             map.insertBefore(c, null);
 
             var gl = c.getContext('experimental-webgl'),
-                vsource = document.getElementById('shader-vertex').innerText,
+                vsource = document.getElementById('shader-vertex').text,
                 vsource = vsource.replace('{CANVAS_WIDTH}', c.width.toFixed(1)),
                 vsource = vsource.replace('{CANVAS_HEIGHT}', c.height.toFixed(1)),
-                fsource = document.getElementById('shader-fragment').innerText,
+                fsource = document.getElementById('shader-fragment').text,
                 program = linkProgram(gl, vsource, fsource);
             
             gl.useProgram(program);
