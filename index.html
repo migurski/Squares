@@ -100,8 +100,7 @@
         written in Typescript and using D3 under the hood.
     </p>
     <p>
-        Map tiles courtesy of <a href="http://www.mapquest.com/">MapQuest</a>
-        <img width="16" height="16" alt="" style="margin-top: -6px;" src="http://developer.mapquest.com/content/osm/mq_logo.png">.
+        Map tiles courtesy of <a href="http://maps.stamen.com">Stamen</a>.
     </p>
     <p>
         I miss getlatlon.com.
@@ -146,7 +145,7 @@
         */
 
         var map = sq.makeImgMap(document.getElementById('map'),
-                                'http://otile1.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.jpg',
+                                'http://tile.stamen.com/toner-lite/{z}/{x}/{y}.png',
                                 37.804319, -122.271210, 12);
 
         map.onMoved(update_info);
